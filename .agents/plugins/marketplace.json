@@ -1,0 +1,21 @@
+{
+  "name": "i-need-to-see-it",
+  "interface": {
+    "displayName": "I Need To See It"
+  },
+  "plugins": [
+    {
+      "name": "i-need-to-see-it",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/noamasu/i-need-to-see-it.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

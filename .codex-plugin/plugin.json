@@ -1,0 +1,27 @@
+{
+  "name": "i-need-to-see-it",
+  "version": "0.1.0",
+  "description": "See how code works: an interactive page of what talks to what, stepped through over time and built from the real code at a pinned ref.",
+  "author": {
+    "name": "Noam Assouline",
+    "url": "https://github.com/noamasu"
+  },
+  "homepage": "https://github.com/noamasu/i-need-to-see-it",
+  "repository": "https://github.com/noamasu/i-need-to-see-it",
+  "license": "AGPL-3.0",
+  "keywords": ["skills", "explainer", "visualization", "code-understanding", "codex"],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "I Need To See It",
+    "shortDescription": "See how the code works, step by step",
+    "longDescription": "Turns any code path, feature, bug or manifest into an interactive explainer page built from the real code at a pinned ref: what talks to what, stepped through over time, with notes, code links, a side-by-side view and the full API surface.",
+    "developerName": "Noam Assouline",
+    "category": "Productivity",
+    "capabilities": ["Instructions"],
+    "websiteURL": "https://github.com/noamasu/i-need-to-see-it",
+    "defaultPrompt": [
+      "i-need-to-see-it how a PVC gets attached to a pod",
+      "i-need-to-see-it the bug in this ticket and its fix"
+    ]
+  }
+}

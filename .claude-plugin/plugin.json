@@ -1,0 +1,13 @@
+{
+  "name": "i-need-to-see-it",
+  "version": "0.1.0",
+  "description": "See how code works: an interactive page of what talks to what, stepped through over time and built from the real code at a pinned ref.",
+  "author": {
+    "name": "Noam Assouline",
+    "url": "https://github.com/noamasu"
+  },
+  "homepage": "https://github.com/noamasu/i-need-to-see-it",
+  "repository": "https://github.com/noamasu/i-need-to-see-it",
+  "license": "AGPL-3.0",
+  "keywords": ["skills", "explainer", "visualization", "code-understanding", "kubernetes", "presentation"]
+}

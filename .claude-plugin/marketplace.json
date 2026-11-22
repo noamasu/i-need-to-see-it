@@ -1,0 +1,16 @@
+{
+  "$schema": "https://www.schemastore.org/claude-code-marketplace.json",
+  "name": "i-need-to-see-it",
+  "description": "Giving eyes to developers: interactive explainer pages built from the real code.",
+  "owner": {
+    "name": "Noam Assouline"
+  },
+  "plugins": [
+    {
+      "name": "i-need-to-see-it",
+      "description": "Turns any code path, feature, bug or manifest into an interactive page: what talks to what, stepped through over time, built from the real code at a pinned ref.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

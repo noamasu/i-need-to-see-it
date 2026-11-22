@@ -1,0 +1,1578 @@
+<title>TODO Two To Four Words</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a schematic sheet (the stage) beside a narration column, with the step rail and timeline lanes under it; a side-by-side view carries the comparison.
+   Look: plain, styles/plain.md. White paper, system fonts, slate for emphasis and never for "bad", orange for danger, deep slate for strong blocks,
+   teal for tips, soft corners. Opens light; the dark set below is switched by the Dark switch. Each tone comes as a wash, a stroke and a text color. --style redhat swaps both token blocks, the font links and the rx values. */
+:root {
+  --paper: #FFFFFF; --sheet: #F8FAFC; --card: #FFFFFF; --pod: #F1F5F9; --band: #F1F5F9;
+  --ink: #0F172A; --ink-2: #475569; --muted: #64748B; --line: #E2E8F0; --line-2: #94A3B8; --grid: #EDF2F7;
+  --brand: #334155; --brand-ink: #334155; --on-brand: #FFFFFF;
+  --strong: #0F172A; --on-strong: #FFFFFF;
+  --link: #0B57D0; --tip: #2A6F6F; --tip-wash: #E3F2F2;
+  --accent: #2A6F6F; --accent-ink: #134E4E; --accent-wash: #E3F2F2;
+  --data: #D23A2E; --data-ink: #9A2A21; --data-wash: #FBE4E2;
+  --ice: #0066CC; --ice-ink: #003366; --ice-wash: #E0F0FF;
+  --ext: #5E40BE; --ext-ink: #3D2785; --ext-wash: #ECE6FF;
+  --held: #707070; --held-ink: #383838; --pause-wash: #F2F2F2;
+  --ok: #3D7317; --ok-ink: #204D00; --ok-wash: #E9F7DF;
+  --bug: #B1380B; --bug-ink: #731F00; --bug-wash: #FFE3D9;
+  --font-display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --radius: 6px;
+  color-scheme: light;
+}
+/* the dark set of the same style: off by default, switched by the Dark switch (key D), kept per browser. It never follows the system or the host theme. */
+:root[data-dark] {
+  --paper: #0B1220; --sheet: #0F172A; --card: #162033; --pod: #1E293B; --band: #131C2E;
+  --ink: #F1F5F9; --ink-2: #CBD5E1; --muted: #94A3B8; --line: #2A3648; --line-2: #64748B; --grid: #172236;
+  --brand: #CBD5E1; --brand-ink: #CBD5E1; --on-brand: #0F172A;
+  --strong: #E2E8F0; --on-strong: #0F172A;
+  --link: #8AB4F8; --tip: #7FD1D1; --tip-wash: #12302F;
+  --accent: #4FB3B3; --accent-ink: #A8E3E3; --accent-wash: #12302F;
+  --data: #F0655A; --data-ink: #FFB3AB; --data-wash: #3A1714;
+  --ice: #4C9AFF; --ice-ink: #B9DCFF; --ice-wash: #0E2A4A;
+  --ext: #9F87F5; --ext-ink: #D5C9FF; --ext-wash: #261B4D;
+  --held: #9AA0A6; --held-ink: #D4D4D4; --pause-wash: #26282C;
+  --ok: #7CC04A; --ok-ink: #C6EBA5; --ok-wash: #1B3310;
+  --bug: #F08A5D; --bug-ink: #FFC7AD; --bug-wash: #3F1B0C;
+  color-scheme: dark;
+}
+/* tones: one vocabulary for facts, timeline segments, chart segments, legend swatches and chips */
+.ok, [data-tone="ok"] { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.ice, [data-tone="ice"] { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); --tb: 1.5px; }
+.held, [data-tone="held"] { --tw: var(--pause-wash); --tc: var(--held); --tt: var(--held-ink); --tb: 1.5px; }
+.accent, [data-tone="accent"], [data-tone="fix"], [data-tag="fix"] { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.data, [data-tone="data"] { --tw: var(--data-wash); --tc: var(--data); --tt: var(--data-ink); }
+.ext, [data-tone="ext"] { --tw: var(--ext-wash); --tc: var(--ext); --tt: var(--ext-ink); }
+.bug, [data-tone="bug"], [data-tag="bug"] { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); --tb: 1.5px; }
+
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+code { font-family: var(--font-mono); font-size: .88em; background: color-mix(in srgb, var(--ink) 7%, transparent); border-radius: var(--radius); padding: .05em .35em; white-space: nowrap; }
+.page {
+  max-width: 1400px; margin-inline: auto; display: grid; gap: 22px;
+  padding-block: 22px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* header: a red section marker on a thin red rule from the top edge, then the title at regular weight */
+.top { position: relative; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; justify-content: space-between; }
+.title-block { min-width: 0; max-width: 70ch; }
+.eyebrow { position: relative; margin: 0 0 18px; padding-left: 16px; font: 500 13px/1.3 var(--font-body); color: var(--brand-ink); }
+.eyebrow::before { content: ""; position: absolute; left: 0; top: -22px; bottom: 0; width: 1.5px; background: var(--brand); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 2vw + 16px, 46px); line-height: 1.08; letter-spacing: -.005em; text-wrap: balance; }
+.lede { margin: 12px 0 0; color: var(--ink-2); font-size: 16px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 0 2px; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: transparent; color: var(--ink-2); font: 500 15px/1 var(--font-body); padding: 12px 14px 10px; cursor: pointer; display: inline-flex; align-items: baseline; gap: 7px; }
+.tab small { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+.tab:hover { color: var(--ink); border-bottom-color: var(--line-2); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand); }
+.tab[aria-selected="true"] small { color: var(--brand-ink); }
+button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.ghost-btn { appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 14px/1 var(--font-body); padding: 11px 16px; border-radius: var(--radius); cursor: pointer; }
+.ghost-btn:hover, .ghost-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+/* the Dark switch: a round on/off switch at the top right of the page, above Present; off by default. Its right offset keeps it on screen when the page is wider than the window */
+.dark-switch { position: absolute; top: -8px; right: max(0px, 100% - 100vw + 32px); display: inline-flex; align-items: center; gap: 8px; appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 500 13px/1 var(--font-body); padding: 6px 0; cursor: pointer; }
+.dark-switch .track { position: relative; width: 38px; height: 20px; border-radius: 999px; background: var(--muted); transition: background .2s; }
+.dark-switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .2s; }
+.dark-switch[aria-checked="true"] .track { background: var(--ink); }
+.dark-switch[aria-checked="true"] .track::after { transform: translateX(18px); }
+@media (max-width: 920px) { .eyebrow { padding-right: 92px; } }
+
+/* walkthrough */
+.walk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 350px); grid-template-areas: "stage narr" "rail rail" "tl tl"; gap: 16px 22px; align-items: stretch; }
+.stage { grid-area: stage; min-width: 0; overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); display: grid; place-items: center; }
+.scene { display: block; width: 100%; height: auto; max-height: max(420px, calc(100vh - 300px)); min-width: 680px; } /* height follows the viewBox; the cap keeps the rail on screen */
+.narr { grid-area: narr; position: relative; min-width: 0; background: var(--card); border: 1px solid var(--line); }
+.narr-in { position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; }
+.meta { margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font: 500 13px/1.2 var(--font-body); color: var(--brand-ink); }
+.flow-chip, .tag-chip { padding: 3px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); }
+.narr h2 { margin: 0; font: 400 27px/1.15 var(--font-display); text-wrap: balance; }
+.narr p { margin: 0; }
+.body { color: var(--ink); font-size: 16px; }
+.note { font-size: 14px; color: var(--ink); background: var(--tip-wash); padding: 12px 14px; }
+.note b { display: block; margin-bottom: 3px; font: 700 13px/1.2 var(--font-body); color: var(--tip); }
+.code-refs { display: flex; flex-wrap: wrap; gap: 6px 14px; font: 500 12.5px/1.3 var(--font-mono); }
+.code-refs a { color: var(--link); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
+.code-refs a:hover { text-decoration-thickness: 2px; }
+.facts { margin: auto 0 0; display: grid; gap: 9px; border-top: 1px dotted var(--line-2); padding-top: 14px; }
+.facts div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.facts dt { font: 500 13.5px/1.2 var(--font-body); color: var(--ink-2); }
+.facts dd { margin: 0; font: 500 12.5px/1.2 var(--font-mono); padding: 4px 10px; border-radius: 999px; background: var(--tw, var(--pod)); color: var(--tt, var(--ink)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); text-align: right; }
+
+.rail { grid-area: rail; min-width: 0; display: flex; gap: 10px; align-items: center; }
+.rail ol { list-style: none; margin: 0; padding: 2px; display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.rail li { flex: none; }
+.step-btn { width: 100%; display: flex; gap: 8px; align-items: center; appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); border-radius: var(--radius); padding: 7px 10px; cursor: pointer; text-align: left; font: 500 13.5px/1.2 var(--font-body); }
+.step-btn:hover { border-color: var(--line-2); }
+.step-btn .n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 600 11.5px/1 var(--font-mono); background: var(--pod); color: var(--ink-2); }
+.step-btn.done .n { background: var(--line); }
+.step-btn[aria-current="step"] { background: var(--strong); border-color: var(--strong); color: var(--on-strong); }
+.step-btn[aria-current="step"] .n { background: var(--on-strong); color: var(--strong); }
+.step-btn[data-tag] .n, .step-btn[data-tag][aria-current="step"] .n { background: var(--tw); color: var(--tt); }
+.step-btn .lbl { display: none; }
+.step-btn[aria-current="step"] .lbl { display: inline; }
+.nav-btn { flex: none; appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 15px/1 var(--font-body); padding: 11px 16px; border-radius: var(--radius); cursor: pointer; white-space: nowrap; }
+.nav-btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+
+.tl { grid-area: tl; display: grid; gap: 6px; }
+.tl-row { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; align-items: center; }
+.tl-label { text-align: right; font: 500 12.5px/1.2 var(--font-body); color: var(--ink-2); }
+.tl-track { display: flex; gap: 2px; height: 26px; }
+.tl-seg { min-width: 16px; display: grid; place-items: center; font: 500 11.5px/1 var(--font-mono); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.tl-seg.hatch { background: repeating-linear-gradient(135deg, var(--tw) 0 5px, transparent 5px 10px); box-shadow: inset 0 0 0 1.5px var(--to, var(--tc)); }
+.tl-seg.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tl-seg.active { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tl-note { margin: 4px 0 0 128px; font-size: 13px; color: var(--muted); }
+
+/* scene */
+.scene text { font-family: var(--font-body); fill: var(--ink); }
+.grid-line { fill: none; stroke: var(--grid); stroke-width: 1; }
+.scene .card { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: fill .35s, stroke .35s; }
+.scene .kicker, .scene .k { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .title { font: 500 17px var(--font-display); fill: var(--ink); }
+.scene .line { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+.scene .mono-line { font: 400 12px var(--font-mono); fill: var(--ink-2); }
+.scene .hair { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 1 3; }
+.scene .v { font: 600 12.5px var(--font-mono); fill: var(--ink); }
+.scene .pod { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.5; }
+.scene .pod-label { font: 500 12.5px var(--font-mono); fill: var(--ink-2); }
+.scene .vm { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; }
+.scene .vm-title { font: 700 16px var(--font-display); fill: var(--ink); }
+.scene .vm-sub { font: 500 11.5px var(--font-mono); fill: var(--muted); }
+.scene .band { fill: var(--band); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .band-label { font: 500 11px var(--font-mono); letter-spacing: .1em; fill: var(--muted); }
+.scene .chip { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .35s; }
+.scene .chip-text { font: 500 14px var(--font-mono); fill: var(--ink); }
+.scene .chip-tag { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .tag { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+
+/* flags the engine sets from data-on, data-active, data-dim and data-ghost */
+.scene [data-on] { opacity: 0; transition: opacity .35s ease; }
+.scene [data-on].on { opacity: 1; }
+.scene .dim, .scene [data-on].on.dim { opacity: .5; }
+.scene .dim .io-track { stroke: var(--held); stroke-dasharray: 2 6; marker-end: none; }
+.scene .dim .io-dots { display: none; }
+.scene .ghost { opacity: .6; transition: opacity .35s; }
+.scene .ghost .card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+
+.scene .guest { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: fill .4s, stroke .4s; }
+.scene[data-guest="frozen"] .guest { fill: var(--ice-wash); stroke: var(--ice); stroke-width: 1.8; }
+.scene[data-guest="paused"] .guest { fill: var(--pause-wash); stroke: var(--held); stroke-width: 1.8; }
+.scene[data-guest="freezing"] .guest { stroke: var(--ice); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.scene .guest-title { font: 500 13.5px var(--font-body); }
+.scene .badge { fill: var(--ok-wash); stroke: var(--ok); stroke-width: 1.2; transition: fill .3s, stroke .3s; }
+.scene .badge-text { font: 600 10.5px var(--font-mono); letter-spacing: .07em; fill: var(--ok-ink); }
+.scene:is([data-guest="frozen"], [data-guest="freezing"]) .badge { fill: var(--card); stroke: var(--ice); }
+.scene[data-guest="freezing"] .badge { stroke-dasharray: 3 3; }
+.scene:is([data-guest="frozen"], [data-guest="freezing"]) .badge-text { fill: var(--ice-ink); }
+.scene[data-guest="paused"] .badge { fill: var(--card); stroke: var(--held); }
+.scene[data-guest="paused"] .badge-text { fill: var(--held-ink); }
+.scene .ic-run { fill: var(--ok); }
+.scene .ic-ice { fill: none; stroke: var(--ice); stroke-width: 1.6; stroke-linecap: round; }
+.scene[data-guest="freezing"] .ic-ice { transform-box: fill-box; transform-origin: center; animation: spin 3s linear infinite; }
+.scene .ic-pause { fill: var(--held-ink); }
+.scene[data-guest="off"] .guest { fill: var(--pause-wash); stroke: var(--held); stroke-dasharray: 6 4; }
+.scene[data-guest="off"] .badge { fill: var(--card); stroke: var(--held); }
+.scene[data-guest="off"] .badge-text { fill: var(--held-ink); }
+.scene .ic-off { fill: var(--held-ink); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.scene .app { transition: opacity .3s; }
+.scene[data-guest="freezing"] .app { opacity: .7; }
+.scene .doc { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.4; }
+.scene .doc-lines { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linecap: round; }
+.scene .app-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+.scene .agent-box { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .3s; }
+.scene .agent-text { font: 500 12px var(--font-body); fill: var(--ink-2); }
+.scene .agent.active .agent-box { stroke: var(--ice); stroke-width: 2; }
+.scene .agent.active .agent-text { fill: var(--ice-ink); font-weight: 700; }
+.scene .disk { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .disk-label { font: 600 12.5px var(--font-mono); }
+.scene .disk-uses { font: 500 12px var(--font-mono); fill: var(--ink-2); }
+.scene[data-writes="extra"] .disk-uses { fill: var(--accent-ink); font-weight: 600; }
+.scene .disk-verb { fill: var(--muted); font-weight: 400; }
+.scene .pvc-chip.active { stroke: var(--data); stroke-width: 1.8; }
+
+.scene .obj-card { stroke: var(--ext); stroke-width: 1.5; }
+.scene .obj-chip { fill: var(--ext-wash); stroke: var(--ext); stroke-width: 1.2; }
+.scene .obj-chip-text { font: 600 12px var(--font-mono); fill: var(--ext-ink); }
+.scene .obj-chip-sub { font: 400 10.5px var(--font-body); fill: var(--ext-ink); }
+.scene[data-obj="busy"] .pulse { animation: develop 1.6s ease-in-out infinite; }
+@keyframes develop { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+.scene .check circle { fill: var(--ext); }
+.scene .check path { fill: none; stroke: var(--card); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.scene .extra-card { stroke: var(--accent); stroke-width: 1.5; }
+.scene .extra-chip { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.4; }
+.scene .extra-chip-text { fill: var(--accent-ink); font-size: 13.5px; }
+.scene .empty-chip { fill: none; stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.scene .empty-text { font: 500 12px var(--font-mono); fill: var(--muted); }
+
+/* markers live in a separate hidden svg, so their classes stay unscoped */
+.mk-data { fill: var(--data); }
+.mk-held { fill: var(--held); }
+.mk-ext { fill: var(--ext); }
+.mk-accent { fill: var(--accent); }
+.mk-bug { fill: var(--bug); }
+.mk-ctrl { fill: var(--line-2); }
+.mk-ctrl-on { fill: var(--ink); }
+
+.scene .io-track { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.scene .io-dots { fill: none; stroke-width: 5.5; stroke-linecap: round; stroke-dasharray: .1 11; animation: flow .9s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -11.1; } }
+.scene .io-g.data .io-track { stroke: var(--data); marker-end: url(#m-data); }
+.scene .io-g.data .io-dots { stroke: var(--data); }
+.scene .io-g.ext .io-track { stroke: var(--ext); marker-end: url(#m-ext); }
+.scene .io-g.ext .io-dots { stroke: var(--ext); }
+.scene .io-g.accent .io-track { stroke: var(--accent); marker-end: url(#m-accent); }
+.scene .io-g.accent .io-dots { stroke: var(--accent); }
+.scene .io-g.bug .io-track { stroke: var(--bug); marker-end: url(#m-bug); }
+.scene .io-g.bug .io-dots { stroke: var(--bug); }
+.scene .io-g.relation .io-track { stroke: var(--muted); stroke-width: 1.8; stroke-dasharray: 5 5; }
+.scene[data-held="1"] .io-g.data .io-track { stroke: var(--held); stroke-dasharray: 6 5; marker-end: url(#m-held); }
+.scene[data-held="1"] .io-g.data .io-dots { display: none; }
+.scene .io-label { font: 600 11.5px var(--font-mono); paint-order: stroke; stroke: var(--band); stroke-width: 4px; stroke-linejoin: round; fill: var(--tt, var(--muted)); }
+.scene .w-label { font: 600 12px var(--font-mono); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; fill: var(--data-ink); }
+.scene .w-label.wait { fill: var(--held); }
+
+.scene .ctrl-path path { fill: none; stroke: var(--line-2); stroke-width: 1.6; stroke-dasharray: 4 4; marker-end: url(#m-ctrl); }
+.scene .ctrl-path.active path { stroke: var(--ink); stroke-width: 2; marker-end: url(#m-ctrl-on); animation: march .6s linear infinite; }
+.scene .ctrl-label { font: 600 11px var(--font-mono); fill: var(--ink); }
+@keyframes march { to { stroke-dashoffset: -8; } }
+
+.scene .switch-line { fill: none; stroke: var(--strong); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 400; stroke-dashoffset: 400; transition: stroke-dashoffset .8s ease .1s; }
+.scene .switch-head { fill: var(--strong); opacity: 0; transition: opacity .2s ease .85s; }
+.scene .switch-dot, .scene .switch-pill { fill: var(--strong); }
+.scene .switch-text { font: 600 12px var(--font-mono); letter-spacing: .12em; fill: var(--on-strong); }
+.scene .switch-g.on .switch-line { stroke-dashoffset: 0; }
+.scene .switch-g.on .switch-head { opacity: 1; }
+
+/* a mount or attachment that exists without moving data: a thick line without a head; marching while it is being set up */
+.scene .plug-line { fill: none; stroke: var(--ext); stroke-width: 2.6; stroke-linecap: round; }
+.scene .plug-line.marching { stroke-dasharray: 4 4; animation: march .6s linear infinite; }
+/* smaller text variants for narrow cards */
+.scene .title-sm { font: 500 14px var(--font-display); fill: var(--ink); }
+.scene .mono-line.sm { font-size: 11px; }
+.scene .chip-text.sm { font-size: 12px; }
+.scene .v.sm { font-size: 11.5px; }
+.scene .io-label.data { fill: var(--data-ink); }
+
+.scene .bug-mark circle { fill: var(--bug); }
+.scene .bug-mark path { fill: none; stroke: var(--card); stroke-width: 2.2; stroke-linecap: round; }
+.scene .bug-label { font: 600 12px var(--font-mono); paint-order: stroke; stroke: var(--band); stroke-width: 4px; stroke-linejoin: round; fill: var(--bug-ink); }
+
+/* side by side: slide language — title, red statement, brand table */
+.compare { display: grid; gap: 22px; }
+.compare h2 { margin: 0; font: 400 clamp(26px, 1.4vw + 16px, 36px)/1.12 var(--font-display); text-wrap: balance; }
+.compare h3 { margin: 0 0 8px; font: 500 20px/1.2 var(--font-display); }
+.cmp-head p { margin: 8px 0 0; color: var(--ink-2); max-width: 70ch; font-size: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); }
+.cmp-chart-wrap { overflow-x: auto; padding: 20px 24px 16px; }
+.cmp-chart { min-width: 760px; display: grid; gap: 14px; }
+.cmp-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; align-items: start; }
+.cmp-name { font: 500 17px/1.2 var(--font-display); padding-top: 35px; }
+.cmp-lanes { display: grid; gap: 5px; }
+.cmp-callouts { position: relative; height: 22px; }
+.callout { position: absolute; bottom: 6px; transform: translateX(-50%); font: 500 11.5px/1 var(--font-mono); white-space: nowrap; color: var(--tt, var(--ink-2)); }
+.callout::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1.5px; height: 7px; background: currentColor; }
+.callout.held { color: var(--held-ink); }
+.callout.ext { color: var(--ext-ink); }
+.cmp-track { position: relative; height: 36px; }
+.cmp-track.thin { height: 18px; }
+.cs { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--card); display: flex; align-items: center; padding: 0 10px; font: 500 13px/1 var(--font-body); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.cs.hatch { background: repeating-linear-gradient(135deg, var(--tw) 0 6px, var(--card) 6px 12px); box-shadow: inset 0 0 0 1.5px var(--to, var(--tc)); }
+.cs.outline { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tc); }
+.cmp-track.thin .cs { font: 500 11px/1 var(--font-mono); padding: 0 8px; }
+.cmp-axis { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; }
+.axis { position: relative; height: 26px; border-top: 1px solid var(--ink); font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.axis span { position: absolute; top: 8px; white-space: nowrap; }
+.axis .tick::before { content: ""; position: absolute; left: 0; top: -9px; width: 1px; height: 6px; background: var(--ink); }
+.legend { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px dotted var(--line-2); display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--ink-2); }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.sw { width: 18px; height: 12px; display: inline-block; background: var(--tw); box-shadow: inset 0 0 0 1px var(--to, var(--tc)); }
+.sw.hatch { background: repeating-linear-gradient(135deg, var(--tw) 0 3px, var(--card) 3px 6px); box-shadow: inset 0 0 0 1.5px var(--to, var(--tc)); }
+.sw.outline { background: transparent; box-shadow: inset 0 0 0 1.5px var(--tc); }
+.takeaway { margin: 0; font: 400 clamp(21px, .9vw + 15px, 28px)/1.3 var(--font-display); color: var(--brand-ink); max-width: 60ch; text-wrap: balance; }
+.table-wrap { overflow-x: auto; }
+.cmp-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px; }
+.cmp-table th, .cmp-table td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.cmp-table tbody tr:last-child > * { border-bottom: 0; }
+.cmp-table thead th { font: 500 14px/1.3 var(--font-body); color: var(--ink); border-bottom: 3px solid var(--ink); }
+.cmp-table thead th.hl { color: var(--accent-ink); }
+.cmp-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
+.cmp-table tbody th { width: 24%; font-weight: 500; color: var(--ink); }
+.cmp-table td { color: var(--ink-2); }
+.howto { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+.howto-text p { margin: 0 0 10px; color: var(--ink-2); max-width: 60ch; }
+.code-card { min-width: 0; overflow: hidden; }
+.code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.copy-btn { appearance: none; border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; border-radius: var(--radius); cursor: pointer; }
+.code-card pre { margin: 0; padding: 14px 16px; overflow-x: auto; font: 400 13px/1.6 var(--font-mono); color: var(--ink); }
+.code-card mark { display: inline-block; min-width: 100%; background: var(--accent-wash); color: var(--accent-ink); font-weight: 600; }
+.code-card .c { color: var(--muted); }
+.back-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.foot { position: relative; font-size: 13px; color: var(--muted); padding: 14px 0 0 16px; }
+.foot::before { content: ""; position: absolute; left: 0; top: 14px; bottom: -44px; width: 1.5px; background: var(--brand); }
+.foot p { margin: 0; max-width: 100ch; }
+
+/* time per step: the "takes" chip in the narration and the thin dark "Takes" line above the lanes */
+.dur-chip::before { content: "takes · "; color: var(--muted); font-weight: 400; }
+.tl-row.takes .tl-track { height: 24px; align-items: flex-end; gap: 2px; }
+.takes-seg { position: relative; flex: 1 1 0; min-width: 16px; display: flex; flex-direction: column; justify-content: flex-end; }
+.takes-line { display: block; height: 1px; background: var(--line); }
+.takes-seg.has .takes-line { height: 2px; background: var(--strong); }
+.takes-seg.active .takes-line { height: 4px; }
+.takes-lbl { display: block; max-width: 100%; font: 500 11px/1.2 var(--font-mono); color: var(--strong); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px 3px; }
+.takes-lbl::before { content: attr(data-short); }
+.takes-seg.active .takes-lbl { font-weight: 700; }
+.takes-seg.has:hover .takes-lbl, .takes-seg.has:focus-within .takes-lbl { position: absolute; left: 0; bottom: 4px; max-width: none; overflow: visible; z-index: 2; padding: 4px 9px; background: var(--strong); color: var(--on-strong); border-radius: var(--radius); }
+.takes-seg.has:hover .takes-lbl::before, .takes-seg.has:focus-within .takes-lbl::before { content: attr(data-long); }
+.takes-seg:last-child.has:hover .takes-lbl, .takes-seg:last-child.has:focus-within .takes-lbl { left: auto; right: 0; }
+.narr code, .api-list code, .cmp-table code, .howto-text code, .intro code { white-space: normal; overflow-wrap: anywhere; }
+
+/* learning mode: the Background view, a reading page in the same vocabulary */
+.intro-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.intro-card { padding: 20px 24px 22px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.intro-card h3 { margin: 0; }
+.intro-card p { margin: 0; color: var(--ink-2); max-width: 70ch; }
+.intro-card .takeaway { max-width: none; }
+.intro-chain { margin: 2px 0; }
+.intro-table { min-width: 0; font-size: 14px; }
+.intro-table th { width: 32%; }
+.intro-watch { margin: 0; padding-left: 20px; color: var(--ink-2); display: grid; gap: 6px; }
+
+/* presentation mode: fewer words, set larger for a projector */
+.page[data-mode="presentation"] .body { font-size: 18px; }
+.page[data-mode="presentation"] .narr h2 { font-size: 30px; }
+.page[data-mode="presentation"] .note { font-size: 15px; }
+
+/* detailed mode: "In the API" folded under each step, and the API surface view */
+.api { border: 1px solid var(--line); background: var(--sheet); }
+.api summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 9px 12px; font: 500 13.5px/1.2 var(--font-body); color: var(--ink); }
+.api summary::-webkit-details-marker { display: none; }
+.api summary::before { content: "▸"; color: var(--muted); font-size: 12px; }
+.api[open] summary::before { content: "▾"; }
+.api summary span:first-of-type { flex: 1; }
+.api-count { font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.api-lines { list-style: none; margin: 0; padding: 9px 12px 10px; display: grid; gap: 6px; border-top: 1px dotted var(--line-2); }
+.api-lines li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 8px; align-items: baseline; font-size: 12.5px; line-height: 1.4; }
+.api-lines li.dim { opacity: .62; }
+.api-lines .obj { font: 500 10.5px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--tt, var(--ink-2)); padding: 3px 6px; border-radius: var(--radius); background: var(--tw, var(--pod)); white-space: nowrap; }
+.api-lines .name { font: 500 12.5px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.api-lines button.name { appearance: none; border: 0; padding: 0; background: transparent; cursor: pointer; text-align: left; text-decoration: underline dotted var(--line-2); text-underline-offset: 3px; }
+.api-lines button.name:hover { color: var(--link); text-decoration-color: var(--link); }
+.api-lines .val { grid-column: 2; color: var(--ink-2); }
+.api-lines .none { grid-column: 1 / -1; color: var(--muted); }
+.surface { display: grid; gap: 22px; }
+.surface h2 { margin: 0; font: 400 clamp(26px, 1.4vw + 16px, 36px)/1.12 var(--font-display); text-wrap: balance; }
+.api-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.api-card { padding: 18px 22px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.api-card.wide { grid-column: 1 / -1; }
+.api-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 14px; }
+.api-head h3 { margin: 0; font: 500 20px/1.2 var(--font-display); }
+.api-kind { font: 500 12px/1.2 var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.api-list { margin: 0; display: grid; gap: 2px; font-size: 14.5px; }
+.api-list dt { font: 500 13px/1.5 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.api-list dt code { font-size: 1em; background: transparent; padding: 0; white-space: normal; }
+.api-list dd { margin: 0 0 10px; color: var(--ink-2); line-height: 1.5; max-width: 70ch; }
+.api-list dd:last-child { margin-bottom: 0; }
+.api-list dd code { font-size: .86em; }
+.api-sub { margin: 2px 0 4px; padding-top: 8px; border-top: 1px dotted var(--line-2); font: 500 12px/1.2 var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.chain { margin: 0 0 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.chain .r { padding: 4px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 1px var(--tc, var(--line-2)); }
+.chain .arr { color: var(--ink-2); font-size: 15px; }
+.chain .lbl { font: 500 12px/1.2 var(--font-body); color: var(--muted); margin-right: 4px; }
+.go { appearance: none; border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: 500 11.5px/1 var(--font-mono); padding: 3px 7px; border-radius: var(--radius); cursor: pointer; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
+.go:hover { border-color: var(--ink); }
+.api-foot { margin: 0; color: var(--ink-2); max-width: 90ch; }
+.api-list dt.flash { animation: flash 1.8s ease-out; }
+@keyframes flash { 0%, 40% { background: var(--accent-wash); box-shadow: 0 0 0 6px var(--accent-wash); } 100% { background: transparent; box-shadow: none; } }
+
+.api-lines li.read .obj { --tw: var(--ice-wash); --tt: var(--ice-ink); }
+.api-lines li.read .val { color: var(--ice-ink); }
+.api-groups { display: grid; gap: 28px; }
+.api-group { display: grid; gap: 16px; }
+.api-group-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; padding-top: 10px; border-top: 1.5px solid var(--brand); }
+.api-group-head h3 { margin: 0; font: 400 25px/1.15 var(--font-display); }
+.api-group-head p { margin: 0; color: var(--ink-2); max-width: 72ch; flex-basis: 100%; }
+.api-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+kbd { font: 500 11px/1 var(--font-mono); padding: 2px 5px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: var(--radius); color: var(--ink-2); background: var(--card); }
+
+/* detailed mode: the YAML drawer, the objects at each step, toggled with Y */
+:root { --drawer-default: min(48vh, 560px); }
+.drawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--drawer-h, var(--drawer-default)); display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--card); border-top: 2px solid var(--ink); box-shadow: 0 -12px 32px rgba(0, 0, 0, .12); }
+.drawer-grip { height: 12px; cursor: ns-resize; touch-action: none; display: grid; place-items: center; background: var(--sheet); }
+.drawer-grip::before { content: ""; width: 44px; height: 4px; border-radius: 2px; background: var(--line-2); }
+.drawer-grip:hover::before, body.drawer-resizing .drawer-grip::before { background: var(--ink); }
+body.drawer-resizing { user-select: none; cursor: ns-resize; }
+.drawer-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 9px max(20px, env(safe-area-inset-right, 0px)) 9px max(20px, env(safe-area-inset-left, 0px)); border-bottom: 1px solid var(--line); background: var(--sheet); font: 500 13.5px/1.3 var(--font-body); color: var(--ink-2); }
+.drawer-title { margin-right: auto; min-width: 0; color: var(--ink); }
+.drawer-title b { font-weight: 500; color: var(--brand-ink); }
+.drawer-modes { display: inline-flex; border: 1px solid var(--line-2); border-radius: var(--radius); overflow: hidden; }
+.drawer-modes button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; cursor: pointer; }
+.drawer-modes button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.drawer-legend { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px; font: 500 12px/1 var(--font-mono); color: var(--ink-2); }
+.drawer-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; background: var(--tw); box-shadow: inset 0 0 0 1px var(--tc); }
+.add { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.chg { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.del { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.rd { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); }
+.drawer-keys { font-size: 12px; color: var(--muted); }
+.drawer-close { appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; border-radius: var(--radius); cursor: pointer; }
+.drawer-close:hover { background: var(--ink); color: var(--paper); }
+.drawer-close:hover kbd { color: var(--paper); background: transparent; border-color: var(--paper); }
+.drawer-body { overflow: auto; padding: 16px max(20px, env(safe-area-inset-right, 0px)) 22px max(20px, env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; align-content: start; }
+.obj-card { border: 1px solid var(--line); background: var(--card); min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.obj-card.touched { border-color: var(--ink); }
+.obj-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 9px 12px; border-bottom: 1px dotted var(--line-2); }
+.obj-kind { font: 500 15px/1.2 var(--font-display); color: var(--ink); }
+.obj-name, .obj-note { font: 500 12px/1.2 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
+.obj-note { color: var(--muted); }
+.obj-api { font: 500 11px/1.2 var(--font-mono); color: var(--muted); margin-left: auto; }
+.obj-badge { font: 500 10.5px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 7px; border-radius: var(--radius); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 1px var(--tc, transparent); }
+.obj-head .go { margin-left: 0; }
+.yaml { margin: 0; padding: 8px 0 10px; font: 400 12.5px/1.6 var(--font-mono); color: var(--ink-2); overflow-x: auto; }
+.yaml .ln { display: flex; align-items: baseline; gap: 0 8px; padding: 0 12px 0 6px; white-space: pre; }
+.yaml .ln.stack { flex-wrap: wrap; }
+.yaml .ln.stack em.by { flex-basis: 100%; }
+.yaml .ln.stack .t { flex: 1 1 0; }
+.yaml .ln i { flex: none; width: 10px; font-style: normal; text-align: center; color: var(--tc, var(--muted)); }
+.yaml .ln .t { flex: 1 1 auto; min-width: 0; }
+.yaml .ln .k { color: var(--ink); }
+.yaml .ln em.by { flex: none; margin-left: auto; max-width: 100%; white-space: normal; text-align: right; font: 500 10.5px/1.3 var(--font-body); font-style: normal; color: var(--muted); padding-left: 10px; }
+.yaml .ln.add, .yaml .ln.chg, .yaml .ln.del, .yaml .ln.rd { background: var(--tw); color: var(--tt); }
+.yaml .ln.add .k, .yaml .ln.chg .k, .yaml .ln.del .k, .yaml .ln.rd .k, .yaml .ln.add em.by, .yaml .ln.chg em.by, .yaml .ln.del em.by, .yaml .ln.rd em.by { color: var(--tt); }
+.yaml .ln.del .t { text-decoration: line-through; }
+.yaml .ln s { text-decoration: line-through; opacity: .62; }
+.yaml .ln.gap { color: var(--muted); }
+.drawer-none, .drawer-unchanged { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.drawer-unchanged { color: var(--muted); }
+body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default)); }
+
+@media (max-width: 560px) { .step-btn[aria-current="step"] .lbl { display: none; } }
+@media (max-width: 920px) {
+  .walk { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "rail" "narr" "tl"; }
+  .narr-in { position: static; }
+  .howto, .api-grid, .intro-grid { grid-template-columns: minmax(0, 1fr); }
+  :root { --drawer-default: 62vh; }
+  .drawer-body { grid-template-columns: minmax(0, 1fr); }
+  .tl-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .tl-note { margin-left: 0; }
+  .tl-label { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="m-data" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-data" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-held" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-held" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ext" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-ext" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-accent" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-accent" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-bug" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-bug" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path class="mk-ctrl" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl-on" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path class="mk-ctrl-on" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path class="grid-line" d="M20 0H0V20"/></pattern>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <button class="dark-switch" id="dark-btn" type="button" role="switch" aria-checked="false" title="Dark mode (D)">Dark<span class="track"></span></button>
+    <div class="title-block">
+      <p class="eyebrow">TODO Project · TODO area · TODO API field or object</p>
+      <h1>TODO A title that names the comparison</h1>
+      <p class="lede">TODO The one concrete example, and what to watch while stepping through.</p>
+    </div>
+    <div class="controls">
+      <div class="tabs" id="tabs" role="tablist" aria-label="Flow"></div>
+      <button class="ghost-btn" id="yaml-btn" type="button" aria-pressed="false" title="The objects at this step, as YAML (Y)" hidden>YAML</button>
+      <button class="ghost-btn" id="present" type="button">Present</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-intro" class="compare intro" aria-label="Background" hidden>
+      <!-- learning mode only (INTRO set): a reading page before the walkthrough; delete the section in presentation mode -->
+      <div class="cmp-head">
+        <h2>TODO The problem in one line, as a reader would say it</h2>
+        <p>TODO Read this first if the subject is new to you: the problem, the pieces the feature adds, and the one idea that makes it work.</p>
+      </div>
+      <div class="intro-grid">
+        <div class="panel intro-card">
+          <h3>The problem</h3>
+          <p>TODO What hurt before, with a real number.</p>
+        </div>
+        <div class="panel intro-card">
+          <h3>The catch, and the trick</h3>
+          <p>TODO What stood in the way, and the mechanism that gets around it, at its price.</p>
+        </div>
+      </div>
+      <div class="panel intro-card wide">
+        <h3>The one idea to hold on to</h3>
+        <p class="takeaway">TODO The sentence the audience should repeat.</p>
+        <div class="chain intro-chain"><span class="lbl">TODO a chain</span><span class="r ok">TODO first</span><span class="arr">→</span><span class="r accent">TODO next</span></div>
+        <p>TODO Everything else is plumbing around that sentence: name the three or four things the flows show.</p>
+      </div>
+      <div class="intro-grid">
+        <div class="panel intro-card">
+          <h3>The pieces</h3>
+          <dl class="api-list">
+            <dt>TODO piece</dt><dd>TODO what it is, where it lives, how you see it.</dd>
+          </dl>
+        </div>
+        <div class="panel intro-card">
+          <h3>Words you will meet</h3>
+          <div class="table-wrap"><table class="cmp-table intro-table"><tbody>
+            <tr><th scope="row">TODO term</th><td>TODO meaning in one line.</td></tr>
+          </tbody></table></div>
+        </div>
+      </div>
+      <div class="panel intro-card wide">
+        <h3>How to read the rest</h3>
+        <p>TODO How the stepping works on this page.</p>
+        <ul class="intro-watch">
+          <li><b>TODO flow:</b> TODO what to watch in it.</li>
+        </ul>
+      </div>
+      <div class="back-row">
+        <button class="nav-btn primary" data-go="before" type="button">Start the walkthrough →</button>
+        <button class="nav-btn" data-go="compare" type="button">Jump to Side by side</button>
+      </div>
+    </section>
+
+    <section id="view-walk" class="walk" aria-label="Step by step">
+      <div class="stage">
+        <svg id="scene" class="scene" viewBox="0 0 960 560" role="img" aria-label="TODO What the diagram shows at the current step">
+          <rect width="960" height="560" fill="url(#grid)"/>
+
+          <rect class="card" x="24" y="40" width="224" height="196" rx="6"/>
+          <text class="kicker" x="42" y="65">CONTROL PLANE</text>
+          <text class="title" x="42" y="89">virt-controller</text>
+          <text class="line" data-line="ctrl" data-cw="6.6" x="42" y="121"></text>
+          <text class="line" data-line="ctrl" data-cw="6.6" x="42" y="143"></text>
+          <text class="line" data-line="ctrl" data-cw="6.6" x="42" y="165"></text>
+          <path class="hair" d="M42 186H230"/>
+          <text class="k" x="42" y="214">TODO OBJECT</text>
+          <text class="v" id="t-cp" x="230" y="214" text-anchor="end"></text>
+          <g class="ctrl-path" data-active="ctrl=pod"><path d="M250 120H292"/></g>
+          <text class="ctrl-label" id="t-cpod" data-on="ctrl=pod" x="271" y="110" text-anchor="middle"></text>
+
+          <rect class="pod" x="296" y="24" width="640" height="268" rx="0"/>
+          <text class="pod-label" x="316" y="49">virt-launcher pod</text>
+          <rect class="vm" x="316" y="62" width="344" height="210" rx="6"/>
+          <text class="vm-title" x="332" y="87">VM</text>
+          <text class="vm-sub" x="372" y="87">QEMU / KVM</text>
+          <rect class="guest" x="332" y="98" width="312" height="116" rx="6"/>
+          <text class="guest-title" x="348" y="124">Guest OS</text>
+          <rect class="badge" x="530" y="108" width="104" height="22" rx="11"/>
+          <circle class="ic-run" data-on="guest=running" cx="545" cy="119" r="4"/>
+          <path class="ic-ice" data-on="guest=frozen|freezing" d="M545 112.5V125.5M539.4 115.8L550.6 122.2M539.4 122.2L550.6 115.8"/>
+          <g class="ic-pause" data-on="guest=paused"><rect x="541" y="114" width="3" height="10" rx="1"/><rect x="546.5" y="114" width="3" height="10" rx="1"/></g>
+          <rect class="ic-off" data-on="guest=off" x="541" y="115" width="8" height="8" rx="1"/>
+          <text class="badge-text" id="t-badge" x="556" y="123"></text>
+          <g class="app" data-dim="guest=frozen|paused|off">
+            <path class="doc" d="M350 140h19l8 8v27a2 2 0 0 1-2 2h-25a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+            <path class="doc-lines" d="M354 154h17M354 160h17M354 166h11"/>
+            <text class="guest-title" x="388" y="154">app</text>
+            <text class="app-sub" id="t-app" x="388" y="170"></text>
+          </g>
+          <g class="agent" data-active="agent=1">
+            <rect class="agent-box" x="476" y="178" width="158" height="26" rx="6"/>
+            <text class="agent-text" x="555" y="195" text-anchor="middle">guest agent</text>
+          </g>
+          <rect class="disk" x="332" y="226" width="312" height="34" rx="6"/>
+          <text class="disk-label" x="346" y="248">vda</text>
+          <text class="disk-uses" x="632" y="248" text-anchor="end"><tspan class="disk-verb">uses </tspan><tspan id="t-disk"></tspan></text>
+
+          <rect class="card" x="680" y="62" width="236" height="210" rx="6"/>
+          <text class="kicker" x="698" y="86">VIRT-LAUNCHER</text>
+          <text class="title" x="698" y="110">libvirt calls</text>
+          <text class="mono-line" data-line="lv" x="698" y="140"></text>
+          <text class="mono-line" data-line="lv" x="698" y="160"></text>
+          <text class="mono-line" data-line="lv" x="698" y="180"></text>
+          <text class="mono-line" data-line="lv" x="698" y="200"></text>
+          <text class="mono-line" data-line="lv" x="698" y="220"></text>
+          <text class="mono-line" data-line="lv" x="698" y="240"></text>
+
+          <rect class="band" x="24" y="316" width="912" height="228" rx="0"/>
+          <text class="band-label" x="44" y="341">STORAGE · CSI DRIVER</text>
+
+          <g data-ghost="obj=none">
+            <rect class="card obj-card" x="48" y="360" width="216" height="160" rx="6"/>
+            <text class="kicker" x="66" y="385">TODO KIND</text>
+            <text class="title" x="66" y="409">TODO of rootdisk</text>
+            <g class="check" data-on="obj=ready"><circle cx="242" cy="403" r="9"/><path d="M237.5 403l3 3 5.5-6"/></g>
+            <g class="pulse" data-on="obj=busy|ready">
+              <rect class="obj-chip" x="78" y="429" width="156" height="40" rx="6"/>
+              <text class="obj-chip-text" x="156" y="446" text-anchor="middle">disk.img</text>
+              <text class="obj-chip-sub" x="156" y="461" text-anchor="middle">TODO as it was at …</text>
+            </g>
+            <text class="tag" id="t-obj" x="66" y="503"></text>
+          </g>
+
+          <rect class="card" x="332" y="360" width="252" height="160" rx="6"/>
+          <text class="kicker" x="350" y="385">PVC</text>
+          <text class="title" x="350" y="409">rootdisk</text>
+          <rect class="chip pvc-chip" data-active="writes=base held=0" x="350" y="426" width="216" height="44" rx="6"/>
+          <text class="chip-text" x="366" y="453">disk.img</text>
+          <text class="chip-tag" x="552" y="452.5" text-anchor="end">RAW</text>
+          <text class="tag" id="t-pvc" x="350" y="503"></text>
+
+          <g data-ghost="extra=none">
+            <rect class="card extra-card" x="664" y="360" width="252" height="160" rx="6"/>
+            <text class="kicker" id="t-extra-k" x="682" y="385"></text>
+            <text class="title" id="t-extra-t" x="682" y="409"></text>
+            <g data-on="extra=empty"><rect class="empty-chip" x="682" y="426" width="216" height="44" rx="6"/><text class="empty-text" x="790" y="452.5" text-anchor="middle">empty</text></g>
+            <g data-on="extra=ready"><rect class="chip extra-chip" x="682" y="426" width="216" height="44" rx="6"/><text class="chip-text extra-chip-text" x="698" y="452.5">TODO-file.qcow2</text></g>
+            <text class="tag" id="t-extra" x="682" y="503"></text>
+          </g>
+
+          <g class="ctrl-path" data-active="ctrl=storage"><path d="M216 238V356"/></g>
+          <text class="ctrl-label" id="t-csto" data-on="ctrl=storage" x="226" y="302"></text>
+
+          <g class="io-g ext" data-on="obj=busy"><path class="io-track" d="M348 446H270"/><path class="io-dots" d="M348 446H270"/></g>
+          <text class="io-label ext" data-on="obj=busy" x="298" y="434" text-anchor="middle">TODO</text>
+          <g class="io-g data"><path class="io-track" d="M363 180V222"/><path class="io-dots" d="M363 180V222"/></g>
+          <g class="io-g data" data-on="writes=base, switch=extra" data-dim="switch=extra"><path class="io-track" d="M458 262V422"/><path class="io-dots" d="M458 262V422"/></g>
+          <text class="w-label" data-on="writes=base held=0 guest!=freezing" x="468" y="307">writes</text>
+          <text class="w-label" data-on="writes=base guest=freezing" x="468" y="307">flushing</text>
+          <text class="w-label wait" data-on="writes=base held=1" x="468" y="307">writes wait</text>
+          <g class="io-g data" data-on="writes=extra"><path class="io-track" d="M610 262C610 330 790 318 790 422"/><path class="io-dots" d="M610 262C610 330 790 318 790 422"/></g>
+          <text class="w-label" data-on="writes=extra held=0" x="742" y="306">writes</text>
+          <text class="w-label wait" data-on="writes=extra held=1" x="742" y="306">writes wait</text>
+
+          <g class="switch-g" data-on="switch=extra">
+            <!-- from the box that acts (libvirt calls) to the box it changes (the extra object); the pill sizes itself from its text -->
+            <path class="switch-line" d="M860 272V352"/>
+            <path class="switch-head" d="M860 356l-7-14h14z"/>
+            <circle class="switch-dot" cx="860" cy="272" r="4"/>
+            <rect class="switch-pill" x="810" y="300" width="100" height="26" rx="0"/>
+            <text class="switch-text" x="860" y="317.5" text-anchor="middle">TODO</text>
+          </g>
+
+          <g class="bug-mark" data-on="bug=1" transform="translate(458 340)"><circle r="11"/><path d="M-4 -4L4 4M4 -4L-4 4"/></g>
+          <text class="bug-label" data-on="bug=1" x="478" y="344">TODO what goes wrong</text>
+        </svg>
+      </div>
+
+      <aside class="narr" aria-live="polite">
+      <div class="narr-in">
+        <p class="meta"><span class="flow-chip" id="flow-chip"></span><span id="step-of"></span><span class="tag-chip" id="tag-chip" hidden></span><span class="tag-chip dur-chip" id="dur-chip" hidden></span></p>
+        <h2 id="ph-title"></h2>
+        <p class="body" id="ph-body"></p>
+        <p class="note" id="ph-note" hidden><b>Note</b><span id="ph-note-text"></span></p>
+        <p class="code-refs" id="ph-code" hidden></p>
+        <details class="api" id="ph-api" hidden>
+          <summary><span>In the API</span><span class="api-count" id="api-count"></span></summary>
+          <ul class="api-lines" id="api-lines"></ul>
+        </details>
+        <dl class="facts" id="facts"></dl>
+      </div>
+      </aside>
+
+      <nav class="rail" aria-label="Steps">
+        <button class="nav-btn" id="prev" type="button">← Back</button>
+        <ol id="steps"></ol>
+        <button class="nav-btn primary" id="next" type="button">Next →</button>
+      </nav>
+
+      <div class="tl" id="tl" aria-hidden="true">
+        <p class="tl-note" id="tl-note">Schematic: widths show order and rough proportion, not measured time. Use ← → or Page Up / Page Down to step, F for full screen, D for dark mode<span id="yaml-hint" hidden>, Y for the objects' YAML</span>. The <em>Takes</em> line above the lanes says how long a step runs; hover a label for the full range. The chip under the step number carries the same text, coloured by what bounds it: grey waits on someone or something, blue is time the guest is frozen, purple scales with the data, teal is a limit or interval set in the code.</p>
+      </div>
+    </section>
+
+    <section id="view-compare" class="compare" aria-label="Side by side" hidden>
+      <div class="cmp-head">
+        <h2>TODO The comparison in one line</h2>
+        <p>TODO What both rows share, and the one thing that differs.</p>
+      </div>
+
+      <div class="panel cmp-chart-wrap">
+        <div class="cmp-chart" role="img" aria-label="TODO The chart in words">
+          <div class="cmp-row">
+            <div class="cmp-name">TODO Old</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts"></div>
+              <div class="cmp-track">
+                <div class="cs ok" style="left:0;width:20%">Running</div>
+                <div class="cs ice hatch" style="left:20%;width:10%">TODO</div>
+                <div class="cs ice" style="left:30%;width:40%">TODO The long phase</div>
+                <div class="cs ok" style="left:70%;width:30%">Running</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs ext" style="left:32%;width:36%">TODO storage</div></div>
+            </div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-name">TODO New</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts"><span class="callout ice" style="left:31%">TODO a short phase</span></div>
+              <div class="cmp-track">
+                <div class="cs ok" style="left:0;width:20%">Running</div>
+                <div class="cs ice hatch" style="left:20%;width:10%">TODO</div>
+                <div class="cs ice" style="left:30%;width:2%"></div>
+                <div class="cs ok" style="left:32%;width:68%">TODO Running on the new path</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs ext" style="left:34%;width:36%">TODO storage</div></div>
+              <div class="cmp-track thin"><div class="cs accent outline" style="left:10%;width:80%">TODO the extra object</div></div>
+            </div>
+          </div>
+          <div class="cmp-axis">
+            <span></span>
+            <div class="axis">
+              <span class="tick" style="left:10%">TODO start event</span>
+              <span style="right:0">schematic, not to scale · time →</span>
+            </div>
+          </div>
+        </div>
+        <ul class="legend">
+          <li><span class="sw ok"></span>Running</li>
+          <li><span class="sw ice hatch"></span>TODO transition</li>
+          <li><span class="sw ice"></span>TODO state</li>
+          <li><span class="sw ext"></span>TODO storage</li>
+          <li><span class="sw accent outline"></span>TODO extra object</li>
+        </ul>
+      </div>
+
+      <p class="takeaway">TODO The one sentence to remember.</p>
+
+      <div class="panel table-wrap">
+        <table class="cmp-table">
+          <thead><tr><th scope="col"></th><th scope="col">TODO Old</th><th scope="col" class="hl">TODO New</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">TODO dimension</th><td>TODO</td><td>TODO</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="howto">
+        <div class="howto-text">
+          <h3>How to ask for it</h3>
+          <p>TODO The field, its default, the feature gate and the maturity.</p>
+        </div>
+        <div class="panel code-card">
+          <div class="code-head"><span>TODO.yaml</span><button class="copy-btn" data-copy="yaml" type="button">Copy</button></div>
+<pre id="yaml">TODO apiVersion: …
+<mark>  TODO the field: value</mark></pre>
+        </div>
+      </div>
+
+      <div class="back-row">
+        <button class="nav-btn" data-go="after/last" type="button">← TODO New flow</button>
+        <button class="nav-btn" data-go="before" type="button">TODO Old flow</button>
+      </div>
+    </section>
+
+    <section id="view-surface" class="surface" aria-label="API surface" hidden>
+      <div class="cmp-head">
+        <h2 id="surface-title"></h2>
+        <p id="surface-lede"></p>
+      </div>
+      <div class="api-groups" id="surface-cards"></div>
+      <p class="api-foot" id="surface-foot"></p>
+      <div class="back-row" id="surface-back"></div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Follows TODO-org/TODO-repo at <code>TODO-sha</code> (TODO date), TODO in releases vX.Y and later: <code>TODO path</code> (TODO component). TODO design doc, PR or ticket.</p>
+  </footer>
+</div>
+
+<aside class="drawer" id="drawer" role="region" aria-label="The objects at this step" hidden>
+  <div class="drawer-grip" id="dr-grip" title="Drag to resize, double-click for tall or default"></div>
+  <div class="drawer-head">
+    <span class="drawer-title">The objects at <b id="dr-step"></b></span>
+    <div class="drawer-modes" role="group" aria-label="What to show">
+      <button type="button" data-mode="changes" aria-pressed="true">Changes</button>
+      <button type="button" data-mode="all" aria-pressed="false">Everything</button>
+    </div>
+    <ul class="drawer-legend" aria-hidden="true"><li><i class="add"></i>added</li><li><i class="chg"></i>changed</li><li><i class="del"></i>removed</li><li><i class="rd"></i>read</li></ul>
+    <span class="drawer-keys" title="Y shows or hides the drawer, M switches between changes and everything, ← → step, Shift ↑ ↓ or dragging the top edge resizes it"><kbd>Y</kbd> hide · <kbd>M</kbd> mode · <kbd>Shift</kbd> <kbd>↑</kbd> <kbd>↓</kbd> resize</span>
+    <button class="drawer-close" id="dr-close" type="button">Close <kbd>Esc</kbd></button>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<script>
+(() => {
+  const REPO = "https://github.com/TODO-org/TODO-repo/blob/TODO-sha/";
+
+  const BASE = { guest: "running", writes: "base", held: "0", obj: "none", extra: "none", ctrl: "none", agent: "0", switch: "none", bug: "0" };
+  const BADGE = { running: "RUNNING", freezing: "FREEZING", frozen: "FS FROZEN", paused: "PAUSED", off: "STOPPED" };
+  const TEXT = {
+    "t-cp": "none", "t-cpod": "asks", "t-csto": "creates",
+    "t-badge": (st) => BADGE[st.guest],
+    "t-app": "writing files",
+    "t-disk": "disk.img",
+    "t-pvc": "the guest's disk, read-write",
+    "t-obj": "not created",
+    "t-extra-k": "NOT CREATED YET", "t-extra-t": "TODO extra object", "t-extra": "TODO created when …"
+  };
+  const LINES = { ctrl: ["TODO Watching for …"], lv: ["domain running"] };
+  const TAGS = { bug: "Where it goes wrong", fix: "The fix" };
+
+  const FLOWS = {
+    before: {
+      label: "TODO Old", sub: "default",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "TODO The VM is running",
+          body: "TODO The guest reads and writes `disk.img` on the `rootdisk` PVC.",
+          s: {}
+        },
+        {
+          short: "TODO", w: 1.2,
+          title: "TODO virt-controller asks virt-launcher",
+          body: "TODO Who does what, and why this step is needed.",
+          note: "TODO A number or limit, and where it comes from.",
+          code: ["pkg/TODO/file.go:100-120"],
+          s: { guest: "freezing", ctrl: "pod", agent: "1" },
+          text: { "t-cp": "InProgress", "t-pvc": "receiving the flushed data" },
+          lines: { ctrl: ["TODO created", "→ TODO ask"], lv: ["virDomainTODO", "  → guest agent", "    TODO command"] }
+        },
+        {
+          short: "TODO", w: 4, time: ["TODO as long as the storage needs, guest frozen meanwhile", "ice", "TODO storage"],
+          title: "TODO The long part",
+          body: "TODO What the storage does meanwhile.",
+          s: { guest: "frozen", held: "1", ctrl: "storage", obj: "busy" },
+          text: { "t-cp": "InProgress", "t-pvc": "not changing", "t-obj": "in progress" },
+          lines: { ctrl: ["→ TODO create", "TODO waits for …"], lv: ["TODO still frozen"] }
+        },
+        {
+          short: "TODO", w: 1.4, tag: "bug",
+          title: "TODO Where it goes wrong",
+          body: "TODO What should happen, what happens instead, and what the user sees.",
+          s: { guest: "frozen", held: "1", obj: "busy", bug: "1" },
+          text: { "t-cp": "Failed", "t-pvc": "not changing", "t-obj": "in progress" },
+          lines: { ctrl: ["TODO gives up"], lv: ["TODO error"] }
+        }
+      ]
+    },
+    after: {
+      label: "TODO New", sub: "new", tone: "accent",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "TODO The VM is running",
+          body: "TODO The same start as the old flow.",
+          s: {}
+        },
+        {
+          short: "TODO", w: 1.6,
+          title: "TODO Add the extra object",
+          body: "TODO What is created, by whom, and how it reaches the pod.",
+          s: { extra: "empty", ctrl: "pod" },
+          text: { "t-cp": "InProgress", "t-cpod": "adds", "t-extra-k": "PVC · TODO", "t-extra-t": "TODO-name", "t-extra": "empty, mounted in the pod" },
+          lines: { ctrl: ["TODO created", "→ TODO add"], lv: ["TODO mounted"] }
+        },
+        {
+          short: "TODO", w: .6, tag: "fix",
+          title: "TODO Switch the data path",
+          body: "TODO The one call that moves the writes.",
+          s: { guest: "frozen", held: "1", writes: "extra", extra: "ready", switch: "extra" },
+          text: { "t-cp": "InProgress", "t-disk": "TODO-file.qcow2", "t-pvc": "read-only", "t-extra-k": "PVC · TODO", "t-extra-t": "TODO-name", "t-extra": "holds the new file" },
+          lines: { ctrl: ["TODO waits"], lv: ["virDomainTODO", "  TODO flags"] }
+        },
+        {
+          short: "TODO", w: 3,
+          title: "TODO Storage works while the guest runs",
+          body: "TODO Why the guest no longer waits.",
+          s: { writes: "extra", extra: "ready", ctrl: "storage", obj: "ready" },
+          text: { "t-cp": "Succeeded", "t-disk": "TODO-file.qcow2", "t-pvc": "read-only", "t-obj": "ready", "t-extra-k": "PVC · TODO", "t-extra-t": "TODO-name", "t-extra": "new writes land here" },
+          lines: { ctrl: ["→ TODO create", "TODO ready"], lv: ["TODO watching"] }
+        }
+      ]
+    }
+  };
+  // Mode: "learning" keeps the Background tab and the full step texts; "presentation" drops the tab (INTRO null, delete its section) and trims the words. references/modes.md.
+  const MODE = "learning";
+  const INTRO = MODE === "learning" ? "Background" : null;
+  const COMPARE = "Side by side";
+
+  // Detailed mode (--detailed). Leave both null for a plain page; anatomy.md section 10 has the formats.
+  // API: per flow, per step, what changes in the API at that step: [object, name, value, anchor in SURFACE, "dim" for a branch taken only on failure].
+  const API = null;
+  // SURFACE: the "API surface" view, one card per object: { label, title, lede, foot, cards: [{ title, kind, wide, entries }], back: [["flow/step", "label"]] }.
+  const SURFACE = null;
+  // YAML: the objects at each step for the YAML drawer (key Y): per flow, one entry per object, its fields written once, at the step they change: { kind, name, note, api, card, gone, steps: { <n>: { by, set, del, read } } }. detailed.md section 4.
+  const YAML = null;
+  // LISTS: the YAML keys that print as lists, with the field that names an item; null for a list of scalars. Add the subject's own.
+  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", containers: "name", finalizers: null, indications: null, accessModes: null };
+
+  const GUEST = { running: ["Running", "ok"], freezing: ["Freezing", "ice"], frozen: ["Filesystems frozen", "ice"], paused: ["Paused", "held"], off: ["Stopped", "held"] };
+  const FACTS = [
+    ["Guest", (st) => GUEST[st.guest]],
+    ["Writes go to", (st, t) => st.guest === "freezing" ? ["flushing to " + t["t-disk"], "data"]
+      : st.held === "1" ? ["wait, guest " + st.guest, "held"]
+      : [t["t-disk"], st.writes === "extra" ? "accent" : "data"]],
+    ["TODO object", (st, t) => [t["t-cp"] === "none" ? "not created" : t["t-cp"], { Succeeded: "ok", Failed: "bug" }[t["t-cp"]] || ""]]
+  ];
+  const LANES = [
+    ["Guest", (st, s, i) => [{ running: "ok", freezing: "ice hatch", frozen: "ice", paused: "held", off: "held" }[st.guest], i + 1]],
+    ["TODO storage", (st, s, i, prev) => st.obj === "busy" ? ["ext hatch", "in progress"]
+      : st.obj === "ready" ? ["ext", prev && prev.obj === "ready" ? "" : "ready"]
+      : ["none", ""]]
+  ];
+
+  const VIEWS = [...(INTRO ? ["intro"] : []), ...Object.keys(FLOWS), ...(COMPARE ? ["compare"] : []), ...(SURFACE ? ["surface"] : [])];
+  const STATIC = { ...(INTRO && { intro: INTRO }), ...(COMPARE && { compare: COMPARE }), ...(SURFACE && { surface: SURFACE.label }) };
+  document.querySelector(".page").dataset.mode = MODE;
+  const $ = (id) => document.getElementById(id);
+  if (!INTRO) { const el = $("view-intro"); if (el) el.remove(); }
+  const scene = $("scene"), stepsOl = $("steps"), prevBtn = $("prev"), nextBtn = $("next"), presentBtn = $("present");
+  let view = VIEWS[0], step = 0, builtFor = null, apiOpen = false;
+
+  const escapeHTML = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const richText = (s) => escapeHTML(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const viewLabel = (v) => STATIC[v] || FLOWS[v].label;
+  const stateOf = (s) => ({ ...BASE, ...s.s });
+  const textOf = (s, st) => Object.fromEntries(Object.entries({ ...TEXT, ...s.text }).map(([k, v]) => [k, typeof v === "function" ? v(st) : v]));
+  const holds = (cond, st) => {
+    const [, key, op, values] = cond.match(/^([\w-]+)(!?=)(.+)$/);
+    return values.split("|").includes(String(st[key])) === (op === "=");
+  };
+  const matches = (expr, st) => expr.split(",").some((all) => all.trim().split(/\s+/).every((c) => holds(c, st)));
+  const codeLink = (ref) => {
+    if (ref.includes("://")) return `<a href="${escapeHTML(ref)}" target="_blank" rel="noopener">${escapeHTML(ref.split("/").pop())}</a>`;
+    const [path, lines] = ref.split(":");
+    const href = REPO + path + (lines ? "#L" + lines.replace("-", "-L") : "");
+    return `<a href="${escapeHTML(href)}" target="_blank" rel="noopener">${escapeHTML(path.split("/").pop() + (lines ? ":" + lines : ""))}</a>`;
+  };
+
+  const tabs = VIEWS.map((v) => {
+    const b = document.createElement("button");
+    b.className = "tab";
+    b.type = "button";
+    b.setAttribute("role", "tab");
+    b.dataset.view = v;
+    b.innerHTML = escapeHTML(viewLabel(v)) + (FLOWS[v] && FLOWS[v].sub ? ` <small>${escapeHTML(FLOWS[v].sub)}</small>` : "");
+    b.addEventListener("click", () => go(v));
+    $("tabs").append(b);
+    return b;
+  });
+
+  const facts = FACTS.map(([name]) => {
+    const row = document.createElement("div"), dt = document.createElement("dt"), dd = document.createElement("dd");
+    dt.textContent = name;
+    row.append(dt, dd);
+    $("facts").append(row);
+    return dd;
+  });
+
+  const lanes = LANES.map(([name]) => {
+    const row = document.createElement("div"), label = document.createElement("span"), track = document.createElement("div");
+    row.className = "tl-row";
+    label.className = "tl-label";
+    label.textContent = name;
+    track.className = "tl-track";
+    row.append(label, track);
+    $("tl").insertBefore(row, $("tl-note"));
+    return track;
+  });
+
+  // The "Takes" line: one segment per step, above the lanes; filled per flow in build().
+  const takes = (() => {
+    const row = document.createElement("div"), label = document.createElement("span"), track = document.createElement("div");
+    row.className = "tl-row takes";
+    label.className = "tl-label";
+    label.textContent = "Takes";
+    track.className = "tl-track takes-track";
+    row.append(label, track);
+    $("tl").prepend(row);
+    return track;
+  })();
+
+  function buildSurface() {
+    $("surface-title").textContent = SURFACE.title;
+    $("surface-lede").innerHTML = richText(SURFACE.lede || "");
+    $("surface-foot").innerHTML = richText(SURFACE.foot || "");
+    const goBtn = (to, label, cls) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = cls;
+      b.textContent = label;
+      b.addEventListener("click", () => { const [v, n] = to.split("/"); go(v, Number(n) - 1); });
+      return b;
+    };
+    const pill = ([label, tone]) => `<span class="r ${tone || ""}">${escapeHTML(label)}</span>`;
+    const cardEl = (card) => {
+      const el = document.createElement("div");
+      el.className = "panel api-card" + (card.wide ? " wide" : "");
+      el.innerHTML = `<div class="api-head"><h3>${escapeHTML(card.title)}</h3><span class="api-kind">${escapeHTML(card.kind || "")}</span></div>`;
+      const dl = document.createElement("dl");
+      dl.className = "api-list";
+      card.entries.forEach((e) => {
+        const d = document.createElement("div");
+        if (e.sub) { d.className = "api-sub"; d.textContent = e.sub; dl.append(d); return; }
+        if (e.chain) {
+          d.className = "chain";
+          d.innerHTML = `<span class="lbl">${escapeHTML(e.label || "states")}</span>` + e.chain.map(pill).join('<span class="arr">→</span>')
+            + (e.failures ? `<span class="lbl" style="margin-left:10px">failures</span>` + e.failures.map(pill).join("") : "");
+          dl.append(d);
+          return;
+        }
+        const dt = document.createElement("dt"), dd = document.createElement("dd");
+        if (e.id) dt.id = e.id;
+        dt.innerHTML = richText(e.name);
+        dd.innerHTML = richText(e.text);
+        if (e.go) dd.append(goBtn(e.go, `step ${e.go.split("/")[1]} →`, "go"));
+        dl.append(dt, dd);
+      });
+      el.append(dl);
+      return el;
+    };
+    const groups = SURFACE.groups || [{ cards: SURFACE.cards }];
+    const wraps = groups.map((group) => {
+      const wrap = document.createElement("div");
+      wrap.className = "api-group";
+      if (group.id) wrap.id = group.id;
+      return wrap;
+    });
+    groups.forEach((group, gi) => {
+      const wrap = wraps[gi];
+      if (groups.length > 1) {
+        const head = document.createElement("div"), nav = document.createElement("div");
+        head.className = "api-group-head";
+        head.innerHTML = `<h3>${escapeHTML(group.title || "")}</h3>`;
+        nav.className = "api-nav";
+        groups.forEach((other, oi) => {
+          if (oi === gi) return;
+          const b = document.createElement("button");
+          b.type = "button";
+          b.className = "nav-btn";
+          b.textContent = oi < gi ? "↑ " + (other.short || other.title) : (other.short || other.title) + " ↓";
+          b.addEventListener("click", () => wraps[oi].scrollIntoView({ block: "start", behavior: "smooth" }));
+          nav.append(b);
+        });
+        head.append(nav);
+        if (group.lede) { const p = document.createElement("p"); p.innerHTML = richText(group.lede); head.append(p); }
+        wrap.append(head);
+      }
+      const grid = document.createElement("div");
+      grid.className = "api-grid";
+      (group.cards || []).forEach((card) => grid.append(cardEl(card)));
+      wrap.append(grid);
+      $("surface-cards").append(wrap);
+    });
+    (SURFACE.back || []).forEach(([to, label]) => $("surface-back").append(goBtn(to, label, "nav-btn")));
+  }
+
+  const apiBox = $("ph-api");
+  apiBox.addEventListener("toggle", () => { apiOpen = apiBox.open; });
+
+  function renderAPI(lines) {
+    apiBox.hidden = !API;
+    if (!API) return;
+    apiBox.open = apiOpen;
+    const changes = lines.filter((l) => !l[4]).length;
+    $("api-count").textContent = changes ? `${changes} change${changes > 1 ? "s" : ""}` : "no change";
+    const ul = $("api-lines");
+    ul.replaceChildren();
+    if (!lines.length) {
+      ul.innerHTML = '<li><span class="none">Nothing changes at this step.</span></li>';
+      return;
+    }
+    lines.forEach(([obj, name, value, anchor, dim]) => {
+      const li = document.createElement("li");
+      if (dim) li.classList.add(dim);
+      const tag = document.createElement("span");
+      tag.className = "obj";
+      tag.dataset.tone = (API.tones || {})[obj] || "";
+      tag.textContent = obj;
+      const n = document.createElement(anchor ? "button" : "span");
+      n.className = "name";
+      n.textContent = name;
+      if (anchor) {
+        n.type = "button";
+        n.title = "Show on the API surface view";
+        n.addEventListener("click", () => showOnSurface(anchor));
+      }
+      const v = document.createElement("span");
+      v.className = "val";
+      v.textContent = value;
+      li.append(tag, n, v);
+      ul.append(li);
+    });
+  }
+
+  function showOnSurface(anchor) {
+    go("surface");
+    const el = $(anchor);
+    if (!el) return;
+    el.scrollIntoView({ block: "center" });
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+  }
+
+  function setLines(name, lines) {
+    scene.querySelectorAll(`[data-line="${name}"]`).forEach((el, i) => {
+      const raw = lines[i] || "", trimmed = raw.trimStart();
+      if (!el.dataset.x) el.dataset.x = el.getAttribute("x");
+      el.textContent = trimmed;
+      el.setAttribute("x", Number(el.dataset.x) + (raw.length - trimmed.length) * Number(el.dataset.cw || 7.2));
+    });
+  }
+
+  function build(v) {
+    stepsOl.replaceChildren();
+    lanes.forEach((track) => track.replaceChildren());
+    takes.replaceChildren();
+    let prev = null;
+    FLOWS[v].steps.forEach((s, i) => {
+      const li = document.createElement("li"), b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-btn";
+      b.title = s.title;
+      b.setAttribute("aria-label", `Step ${i + 1}: ${s.title}`);
+      if (s.tag) b.dataset.tag = s.tag;
+      b.innerHTML = `<span class="n">${i + 1}</span><span class="lbl">${escapeHTML(s.short)}</span>`;
+      b.addEventListener("click", () => { step = i; render(); });
+      li.append(b);
+      stepsOl.append(li);
+
+      const st = stateOf(s);
+      LANES.forEach(([, seg], k) => {
+        const [cls, label] = seg(st, s, i, prev);
+        const el = document.createElement("div");
+        el.className = "tl-seg " + cls;
+        el.style.flex = `${s.w || 1} 1 0`;
+        el.textContent = label ?? "";
+        lanes[k].append(el);
+      });
+      const seg = document.createElement("div");
+      seg.className = "takes-seg" + (s.time ? " has" : "");
+      seg.style.flex = `${s.w || 1} 1 0`;
+      if (s.time) {
+        const l = document.createElement("span");
+        l.className = "takes-lbl";
+        l.dataset.short = s.time[2] || s.time[0];
+        l.dataset.long = s.time[0];
+        l.title = s.time[0];
+        l.tabIndex = 0;
+        seg.append(l);
+      }
+      const line = document.createElement("i");
+      line.className = "takes-line";
+      seg.append(line);
+      takes.append(seg);
+      prev = st;
+    });
+    builtFor = v;
+  }
+
+  // A pill's box follows its text, whatever font the viewer has. The rect must come right before its text.
+  function fitPills() {
+    scene.querySelectorAll(".switch-pill + .switch-text").forEach((text) => {
+      const rect = text.previousElementSibling, pad = 2 * Number(getComputedStyle(text).fontSize.replace("px", ""));
+      let w = 0;
+      try { w = text.getBBox().width; } catch (e) { return; }
+      if (!w) return;
+      rect.setAttribute("width", Math.ceil(w + pad));
+      rect.setAttribute("x", Math.round(Number(text.getAttribute("x")) - (w + pad) / 2));
+    });
+  }
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPills);
+
+  function render() {
+    tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+    const isStatic = view in STATIC;
+    $("view-walk").hidden = isStatic;
+    Object.keys(STATIC).forEach((v) => { $("view-" + v).hidden = view !== v; });
+    try { history.replaceState(null, "", "#" + view + (isStatic ? "" : "/" + (step + 1))); } catch (e) { /* the viewer may not allow it */ }
+    if (isStatic) { renderDrawer(); return; }
+
+    if (builtFor !== view) build(view);
+    const flow = FLOWS[view], s = flow.steps[step], st = stateOf(s), t = textOf(s, st);
+
+    Object.entries(st).forEach(([k, v]) => scene.setAttribute("data-" + k, v));
+    scene.setAttribute("data-flow", view);
+    scene.querySelectorAll("[data-on], [data-active], [data-dim], [data-ghost]").forEach((el) => {
+      ["on", "active", "dim", "ghost"].forEach((flag) => { if (el.dataset[flag]) el.classList.toggle(flag, matches(el.dataset[flag], st)); });
+    });
+    Object.entries({ ...LINES, ...s.lines }).forEach(([name, lines]) => setLines(name, lines));
+    Object.entries(t).forEach(([id, value]) => { const el = $(id); if (el) el.textContent = value; });
+    fitPills();
+
+    const chip = $("flow-chip");
+    chip.textContent = flow.label;
+    chip.dataset.tone = flow.tone || "";
+    $("step-of").textContent = `Step ${step + 1} of ${flow.steps.length}`;
+    const tag = $("tag-chip");
+    tag.hidden = !s.tag;
+    tag.dataset.tone = s.tag || "";
+    tag.textContent = TAGS[s.tag] || "";
+    const dur = $("dur-chip");
+    dur.hidden = !s.time;
+    dur.dataset.tone = s.time ? s.time[1] : "";
+    dur.textContent = s.time ? s.time[0] : "";
+    $("ph-title").textContent = s.title;
+    $("ph-body").innerHTML = richText(s.body);
+    $("ph-note").hidden = !s.note;
+    $("ph-note-text").innerHTML = s.note ? richText(s.note) : "";
+    $("ph-code").hidden = !s.code;
+    $("ph-code").innerHTML = (s.code || []).map(codeLink).join("");
+    renderAPI(API && API[view] ? API[view][step] || [] : []);
+    FACTS.forEach(([, get], i) => {
+      const [value, tone] = get(st, t, s);
+      facts[i].textContent = value;
+      facts[i].dataset.tone = tone || "";
+    });
+
+    [...stepsOl.children].forEach((li, i) => {
+      const b = li.firstElementChild;
+      if (i === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", i < step);
+    });
+    lanes.forEach((track) => [...track.children].forEach((el, i) => el.classList.toggle("active", i === step)));
+    [...takes.children].forEach((el, i) => el.classList.toggle("active", i === step));
+
+    const at = VIEWS.indexOf(view), last = step === flow.steps.length - 1;
+    nextBtn.textContent = last && VIEWS[at + 1] ? viewLabel(VIEWS[at + 1]) + " →" : "Next →";
+    nextBtn.disabled = last && !VIEWS[at + 1];
+    prevBtn.textContent = step === 0 && at > 0 ? "← " + viewLabel(VIEWS[at - 1]) : "← Back";
+    prevBtn.disabled = step === 0 && at === 0;
+    renderDrawer();
+  }
+
+  function go(v, i = 0) {
+    view = v;
+    step = FLOWS[v] && i < 0 ? FLOWS[v].steps.length - 1 : Math.max(0, i);
+    render();
+  }
+
+  function next() {
+    if (view in STATIC) { const v = VIEWS[VIEWS.indexOf(view) + 1]; if (v) go(v); return; }
+    if (step < FLOWS[view].steps.length - 1) { step++; render(); return; }
+    const v = VIEWS[VIEWS.indexOf(view) + 1];
+    if (v) go(v);
+  }
+
+  function prev() {
+    if (!(view in STATIC) && step > 0) { step--; render(); return; }
+    const v = VIEWS[VIEWS.indexOf(view) - 1];
+    if (v) go(v, -1);
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenEnabled) return;
+    const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  // The YAML drawer (detailed mode): the objects at the current step, each as a YAML excerpt with the
+  // step's changes marked. The state at a step is derived from the YAML deltas up to it, and diffed
+  // against the previous step: added, changed (old value struck through), removed, read.
+  const RANK = ["metadata", "spec", "status"];
+  const MARK = { add: "+", chg: "~", del: "−", rd: "·" };
+  const drawer = $("drawer"), drawerBody = $("dr-body"), yamlBtn = $("yaml-btn"), grip = $("dr-grip");
+  let yamlOpen = false, yamlMode = "changes";
+  yamlBtn.hidden = !YAML;
+  $("yaml-hint").hidden = !YAML;
+
+  function parsePath(path) {
+    const segs = [];
+    let cur = "";
+    for (let i = 0; i < path.length; i++) {
+      const ch = path[i];
+      if (ch === ".") { if (cur) segs.push(cur); cur = ""; }
+      else if (ch === "[") { if (cur) segs.push(cur); cur = ""; const end = path.indexOf("]", i); segs.push("[" + path.slice(i + 1, end)); i = end; }
+      else cur += ch;
+    }
+    if (cur) segs.push(cur);
+    return segs;
+  }
+
+  const deltas = (obj, n) => [].concat(obj.steps[n] || []);
+
+  function stateAt(obj, upto) {
+    const state = new Map();
+    for (let n = 1; n <= upto; n++) deltas(obj, n).forEach((d) => {
+      (d.del || []).forEach((p) => state.delete(p));
+      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by }));
+    });
+    return state;
+  }
+
+  function objectView(obj, n) {
+    if (obj.gone && n > obj.gone) return null;
+    const now = obj.gone === n ? new Map() : stateAt(obj, n);
+    const before = n === 1 ? now : stateAt(obj, n - 1);
+    if (!now.size && !before.size) return null;
+    const reads = {}, removedBy = {};
+    deltas(obj, n).forEach((d) => { Object.assign(reads, d.read || {}); (d.del || []).forEach((p) => { removedBy[p] = d.by; }); });
+
+    const root = { seg: "", children: new Map(), path: null };
+    [...before.keys(), ...now.keys()].forEach((path) => {
+      let node = root;
+      parsePath(path).forEach((seg) => {
+        if (!node.children.has(seg)) node.children.set(seg, { seg, children: new Map(), path: null });
+        node = node.children.get(seg);
+      });
+      node.path = path;
+    });
+
+    const leafClass = (path) => {
+      const was = before.get(path), is = now.get(path);
+      if (!was) return "add";
+      if (!is) return "del";
+      if (was.value !== is.value) return "chg";
+      return reads[path] ? "rd" : "";
+    };
+    const classOf = (node) => {
+      if (!node.children.size) return leafClass(node.path);
+      const set = new Set([...node.children.values()].map(classOf));
+      return set.size === 1 ? [...set][0] : "";
+    };
+    const hot = (node) => node.children.size ? [...node.children.values()].some(hot) : leafClass(node.path) !== "";
+    const firstLeaf = (node) => node.children.size ? firstLeaf(node.children.values().next().value) : node;
+    const tagOf = (node, cls) => {
+      const path = firstLeaf(node).path;
+      if (cls === "add" || cls === "chg") return now.get(path).by;
+      if (cls === "del") return obj.gone === n ? obj.goneBy || "the controller" : removedBy[path] || before.get(path).by;
+      if (cls === "rd") return "read · " + reads[path];
+      return "";
+    };
+
+    const lines = [], counts = { add: 0, chg: 0, del: 0, rd: 0 };
+    const full = yamlMode === "all";
+    const walk = (node, depth, keyField, parentTag) => {
+      const kids = [...node.children.values()];
+      if (node === root) kids.sort((a, b) => (RANK.indexOf(a.seg) + 1 || 9) - (RANK.indexOf(b.seg) + 1 || 9));
+      let gap = false;
+      kids.forEach((kid) => {
+        const cls = classOf(kid);
+        if (!full && !cls && !hot(kid)) {
+          if (!gap) lines.push({ head: " ".repeat(depth * 2) + "…", value: "", cls: "gap", tag: "" });
+          gap = true;
+          return;
+        }
+        gap = false;
+        const tag = tagOf(kid, cls);
+        const shown = cls && tag !== parentTag ? tag : "";
+        const key = kid.seg.startsWith("[") ? kid.seg.slice(1) : kid.seg;
+        const indent = " ".repeat(depth * 2);
+        const leaf = !kid.children.size;
+        if (leaf && cls) counts[cls]++;
+        if (keyField !== undefined) {
+          if (keyField === null) { lines.push({ head: `${indent}- `, value: key, cls, tag: shown }); return; }
+          lines.push({ head: `${indent}- ${keyField}: `, value: key, cls, tag: shown });
+          walk(kid, depth + 1, undefined, cls ? tag : parentTag);
+          return;
+        }
+        if (leaf) {
+          const is = now.get(kid.path), was = before.get(kid.path);
+          lines.push({ head: `${indent}${key}: `, value: (is || was).value, old: cls === "chg" ? was.value : "", cls, tag: shown });
+          return;
+        }
+        lines.push({ head: `${indent}${key}:`, value: "", cls, tag: shown });
+        walk(kid, depth + 1, kid.seg in LISTS ? LISTS[kid.seg] : undefined, cls ? tag : parentTag);
+      });
+    };
+    walk(root, 0, undefined, "");
+    const changed = counts.add + counts.chg + counts.del > 0;
+    return { lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+  }
+
+  const yamlLine = (text) => escapeHTML(text).replace(/^(\s*(?:- )?)([^:]+:)(?=\s|$)/, '$1<span class="k">$2</span>');
+
+  function objectCard(obj, v) {
+    const card = document.createElement("section");
+    card.className = "obj-card" + (v.hot ? " touched" : "");
+    const head = document.createElement("header");
+    head.className = "obj-head";
+    head.innerHTML = `<span class="obj-kind">${escapeHTML(obj.kind)}</span><span class="obj-name">${escapeHTML(obj.name)}</span>`
+      + (obj.note ? `<span class="obj-note">${escapeHTML(obj.note)}</span>` : "");
+    const badge = v.deleted ? ["del", "deleted"] : v.created ? ["add", "created"] : v.changed ? ["chg", "changed"] : v.hot ? ["rd", "read"] : null;
+    if (badge) {
+      const b = document.createElement("span");
+      b.className = "obj-badge " + badge[0];
+      b.textContent = badge[1];
+      head.append(b);
+    }
+    if (obj.card) {
+      const g = document.createElement("button");
+      g.type = "button";
+      g.className = "go";
+      g.textContent = "API surface →";
+      g.addEventListener("click", () => showOnSurface(obj.card));
+      head.append(g);
+    }
+    const api = document.createElement("span");
+    api.className = "obj-api";
+    api.textContent = obj.api || "";
+    head.append(api);
+    const pre = document.createElement("pre");
+    pre.className = "yaml";
+    v.lines.forEach((l) => {
+      const div = document.createElement("div");
+      div.className = "ln " + l.cls;
+      div.innerHTML = `<i>${MARK[l.cls] || ""}</i><span class="t">${yamlLine(l.head)}${l.old ? `<s>${escapeHTML(l.old)}</s> ` : ""}${escapeHTML(l.value)}</span>` + (l.tag ? `<em class="by">${escapeHTML(l.tag)}</em>` : "");
+      pre.append(div);
+    });
+    card.append(head, pre);
+    return card;
+  }
+
+  function renderDrawer() {
+    const walk = !!YAML && !(view in STATIC);
+    const open = walk && yamlOpen;
+    drawer.hidden = !open;
+    document.body.classList.toggle("drawer-open", open);
+    yamlBtn.disabled = !walk;
+    yamlBtn.setAttribute("aria-pressed", String(open));
+    document.querySelectorAll(".drawer-modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === yamlMode)));
+    if (!open) return;
+    const flow = FLOWS[view], n = step + 1;
+    $("dr-step").textContent = `${flow.label}, step ${n} of ${flow.steps.length}: ${flow.steps[step].title}`;
+    drawerBody.replaceChildren();
+    const unchanged = [];
+    let shown = 0;
+    (YAML[view] || []).forEach((obj) => {
+      const v = objectView(obj, n);
+      if (!v) return;
+      if (yamlMode === "changes" && !v.hot) { unchanged.push(`${obj.kind} ${obj.name}`); return; }
+      shown++;
+      drawerBody.append(objectCard(obj, v));
+    });
+    if (!shown) {
+      const p = document.createElement("p");
+      p.className = "drawer-none";
+      p.textContent = n === 1 ? "The starting point. Step forward to see what changes." : "Nothing changes in these objects at this step.";
+      drawerBody.append(p);
+    }
+    if (unchanged.length) {
+      const p = document.createElement("p");
+      p.className = "drawer-unchanged";
+      p.textContent = (n === 1 ? "Present: " : "Unchanged: ") + unchanged.join(" · ");
+      drawerBody.append(p);
+    }
+    // a tag that does not fit beside its line goes under it
+    drawerBody.querySelectorAll(".ln em.by").forEach((tag) => {
+      const ln = tag.parentElement;
+      if (ln.querySelector(".t").scrollWidth + tag.offsetWidth + 40 > ln.clientWidth) ln.classList.add("stack");
+    });
+  }
+
+  function toggleYAML() {
+    if (!yamlOpen && (!YAML || view in STATIC)) return;
+    yamlOpen = !yamlOpen;
+    renderDrawer();
+  }
+
+  function setYamlMode(mode) {
+    yamlMode = mode;
+    renderDrawer();
+  }
+
+  // the drawer's height: drag the grip, double-click it, Shift ↑ ↓; kept per browser
+  const rootStyle = document.documentElement.style;
+  function setDrawerHeight(px) {
+    const h = Math.round(Math.min(Math.max(px, 160), window.innerHeight * 0.9));
+    rootStyle.setProperty("--drawer-h", h + "px");
+    try { localStorage.setItem("drawer-h", String(h)); } catch (e) { /* a per-browser convenience */ }
+  }
+  function resetDrawerHeight() {
+    rootStyle.removeProperty("--drawer-h");
+    try { localStorage.removeItem("drawer-h"); } catch (e) { /* a per-browser convenience */ }
+  }
+  try { const saved = Number(localStorage.getItem("drawer-h")); if (saved) rootStyle.setProperty("--drawer-h", saved + "px"); } catch (e) { /* a per-browser convenience */ }
+  grip.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    document.body.classList.add("drawer-resizing");
+    const move = (ev) => setDrawerHeight(window.innerHeight - ev.clientY);
+    const up = () => { grip.removeEventListener("pointermove", move); document.body.classList.remove("drawer-resizing"); };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up, { once: true });
+    grip.addEventListener("pointercancel", up, { once: true });
+  });
+  grip.addEventListener("dblclick", () => {
+    if (drawer.getBoundingClientRect().height > window.innerHeight * 0.6) resetDrawerHeight(); else setDrawerHeight(window.innerHeight * 0.8);
+  });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (yamlOpen) renderDrawer(); });
+  window.addEventListener("resize", () => { if (yamlOpen && YAML && !(view in STATIC)) renderDrawer(); });
+  yamlBtn.addEventListener("click", toggleYAML);
+  $("dr-close").addEventListener("click", toggleYAML);
+  document.querySelectorAll(".drawer-modes button").forEach((b) => b.addEventListener("click", () => setYamlMode(b.dataset.mode)));
+
+  nextBtn.addEventListener("click", next);
+  prevBtn.addEventListener("click", prev);
+  document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
+    const [v, at] = b.dataset.go.split("/");
+    go(v, at === "last" ? -1 : 0);
+  }));
+
+  // Dark mode: off by default, the viewer's choice kept per browser. It never follows the system or the host theme.
+  const darkBtn = $("dark-btn");
+  let dark = false;
+  try { const saved = localStorage.getItem("dark"); if (saved !== null) dark = saved === "1"; } catch (e) { /* a per-browser convenience */ }
+  function setDark(on) {
+    dark = on;
+    document.documentElement.toggleAttribute("data-dark", on);
+    darkBtn.setAttribute("aria-checked", String(on));
+    try { localStorage.setItem("dark", on ? "1" : "0"); } catch (e) { /* a per-browser convenience */ }
+  }
+  setDark(dark);
+  darkBtn.addEventListener("click", () => setDark(!dark));
+
+  if (document.fullscreenEnabled) {
+    presentBtn.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      presentBtn.textContent = document.fullscreenElement ? "Exit full screen" : "Present";
+    });
+  } else {
+    presentBtn.hidden = true;
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onButton = e.target instanceof HTMLButtonElement;
+    if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && !onButton)) { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+    else if (e.key === "y" || e.key === "Y") toggleYAML();
+    else if (e.key === "Escape" && yamlOpen) toggleYAML();
+    else if ((e.key === "m" || e.key === "M") && yamlOpen) setYamlMode(yamlMode === "changes" ? "all" : "changes");
+    else if (e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && yamlOpen) { e.preventDefault(); setDrawerHeight(drawer.getBoundingClientRect().height + (e.key === "ArrowUp" ? 80 : -80)); }
+    else if (e.key === "f" || e.key === "F") toggleFullscreen();
+    else if (e.key === "d" || e.key === "D") setDark(!dark);
+    else if (/^[1-9]$/.test(e.key) && VIEWS[e.key - 1]) go(VIEWS[e.key - 1]);
+  });
+
+  document.querySelectorAll("[data-copy]").forEach((btn) => btn.addEventListener("click", () => {
+    const pre = $(btn.dataset.copy);
+    const reset = () => setTimeout(() => { btn.textContent = "Copy"; }, 1800);
+    const selectInstead = () => {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      btn.textContent = "Selected, press Ctrl+C";
+      reset();
+    };
+    try {
+      navigator.clipboard.writeText(pre.textContent).then(() => { btn.textContent = "Copied"; reset(); }, selectInstead);
+    } catch (e) {
+      selectInstead();
+    }
+  }));
+
+  if (SURFACE) buildSurface();
+  const [hashView, hashStep] = decodeURIComponent(location.hash.slice(1)).split("/");
+  if (VIEWS.includes(hashView)) {
+    view = hashView;
+    if (FLOWS[view]) step = Math.min(Math.max((Number(hashStep) || 1) - 1, 0), FLOWS[view].steps.length - 1);
+  }
+  render();
+})();
+</script>

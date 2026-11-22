@@ -1,0 +1,2074 @@
+
+<title>Direct vs External snapshots</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono:wght@400;500;600;700&family=Red+Hat+Text:wght@400;500;700&display=swap">
+<style>
+/* Layout: a schematic sheet (the stage) beside a narration column, with the step rail and a guest timeline under it; a side-by-side view carries the comparison. */
+:root {
+  --paper: #FFFFFF; --sheet: #FAFAFA; --card: #FFFFFF; --pod: #F2F2F2; --band: #F2F2F2;
+  --ink: #151515; --ink-2: #4D4D4D; --muted: #707070; --line: #E0E0E0; --line-2: #A3A3A3; --grid: #EDEDED;
+  --brand: #EE0000; --brand-ink: #EE0000; --on-brand: #FFFFFF;
+  --strong: #1B0D33; --on-strong: #FFFFFF;
+  --link: #0066CC; --tip: #147878; --tip-wash: #DAF2F2;
+  --accent: #147878; --accent-ink: #004D4D; --accent-wash: #DAF2F2;
+  --write: #EE0000; --write-ink: #A60000; --write-wash: #FCE3E3;
+  --ice: #0066CC; --ice-ink: #003366; --ice-wash: #E0F0FF;
+  --csi: #5E40BE; --csi-ink: #3D2785; --csi-wash: #ECE6FF;
+  --held: #707070; --held-ink: #383838; --pause-wash: #F2F2F2;
+  --ok: #3D7317; --ok-ink: #204D00; --ok-wash: #E9F7DF;
+  --bug: #B1380B; --bug-ink: #731F00; --bug-wash: #FFE3D9;
+  --font-display: "Red Hat Display", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Red Hat Text", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Red Hat Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+/* the dark set of the same style: off by default, switched by the Dark switch (key D), kept per browser. It never follows the system or the host theme. */
+:root[data-dark] {
+  --paper: #151515; --sheet: #1A1A1A; --card: #1F1F1F; --pod: #292929; --band: #232323;
+  --ink: #FFFFFF; --ink-2: #C7C7C7; --muted: #A3A3A3; --line: #383838; --line-2: #707070; --grid: #242424;
+  --brand: #EE0000; --brand-ink: #F56E6E; --on-brand: #FFFFFF;
+  --strong: #B6A6E9; --on-strong: #1B0D33;
+  --link: #92C5F9; --tip: #9AD8D8; --tip-wash: #0D3B3B;
+  --accent: #63BDBD; --accent-ink: #B9E5E5; --accent-wash: #0D3B3B;
+  --write: #F56E6E; --write-ink: #FBBEBE; --write-wash: #4A0A0A;
+  --ice: #4394E5; --ice-ink: #B9DAFC; --ice-wash: #032142;
+  --csi: #876FD4; --csi-ink: #D0C5F4; --csi-wash: #21134D;
+  --held: #A3A3A3; --held-ink: #E0E0E0; --pause-wash: #292929;
+  --ok: #87BB62; --ok-ink: #D1F1BB; --ok-wash: #183301;
+  --bug: #F4784A; --bug-ink: #FBBEA8; --bug-wash: #4D1F00;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+code { font-family: var(--font-mono); font-size: .88em; background: color-mix(in srgb, var(--ink) 7%, transparent); border-radius: 3px; padding: .05em .35em; white-space: nowrap; }
+.page {
+  max-width: 1400px; margin-inline: auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px;
+  padding-block: 22px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* header */
+.top { position: relative; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; justify-content: space-between; }
+.title-block { min-width: 0; max-width: 70ch; }
+.eyebrow::before { content: ""; position: absolute; left: 0; top: -22px; bottom: 0; width: 1.5px; background: var(--brand); }
+.facts dt { font: 500 13.5px/1.2 var(--font-body); color: var(--ink-2); }
+.eyebrow { position: relative; margin: 0 0 18px; padding-left: 16px; font: 500 13px/1.3 var(--font-body); color: var(--brand-ink); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 2vw + 16px, 46px); line-height: 1.08; letter-spacing: -.005em; text-wrap: balance; }
+h1 .flow-word { transition: color .2s; }
+h1 .flow-word.on { color: var(--brand-ink); font-weight: 500; }
+.lede { margin: 12px 0 0; color: var(--ink-2); font-size: 16px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 0 2px; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: transparent; color: var(--ink-2); font: 500 15px/1 var(--font-body); padding: 12px 14px 10px; cursor: pointer; display: inline-flex; align-items: baseline; gap: 7px; }
+.tab small { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+.tab:hover { color: var(--ink); border-bottom-color: var(--line-2); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand); }
+.tab[aria-selected="true"] small { color: var(--brand-ink); }
+button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.ghost-btn { appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 14px/1 var(--font-body); padding: 11px 16px; border-radius: 3px; cursor: pointer; }
+.ghost-btn:hover, .ghost-btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+/* the Dark switch: a round on/off switch at the top right of the page, above Present; off by default. Its right offset keeps it on screen when the page is wider than the window */
+.dark-switch { position: absolute; top: -8px; right: max(0px, 100% - 100vw + 32px); display: inline-flex; align-items: center; gap: 8px; appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 500 13px/1 var(--font-body); padding: 6px 0; cursor: pointer; }
+.dark-switch .track { position: relative; width: 38px; height: 20px; border-radius: 999px; background: var(--muted); transition: background .2s; }
+.dark-switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .2s; }
+.dark-switch[aria-checked="true"] .track { background: var(--ink); }
+.dark-switch[aria-checked="true"] .track::after { transform: translateX(18px); }
+@media (max-width: 920px) { .eyebrow { padding-right: 92px; } }
+
+/* walkthrough */
+.walk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 350px); grid-template-areas: "stage narr" "rail rail" "tl tl"; gap: 16px 22px; align-items: stretch; }
+.stage { grid-area: stage; min-width: 0; overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); display: grid; place-items: center; }
+.scene { display: block; width: 100%; height: max(420px, calc(100vh - 300px)); min-width: 680px; }
+.narr { grid-area: narr; position: relative; min-width: 0; background: var(--card); border: 1px solid var(--line); }
+.narr-in { position: absolute; inset: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; }
+.meta { margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font: 500 13px/1.2 var(--font-body); color: var(--brand-ink); }
+.flow-chip, .tag-chip { padding: 3px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); }
+.flow-chip.external { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.flow-chip.recovery { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.tag-chip.bug { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.tag-chip.fix { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.step-btn.bug { border-color: var(--bug); color: var(--bug-ink); }
+.step-btn.fix { border-color: var(--accent); color: var(--accent-ink); }
+.narr h2 { margin: 0; font: 400 27px/1.15 var(--font-display); text-wrap: balance; }
+.narr p { margin: 0; }
+.body { color: var(--ink); font-size: 16px; }
+.note { font-size: 14px; color: var(--ink); background: var(--tip-wash); padding: 12px 14px; }
+.note b { display: block; margin-bottom: 3px; font: 700 13px/1.2 var(--font-body); color: var(--tip); }
+.facts { margin: auto 0 0; display: grid; gap: 9px; border-top: 1px dotted var(--line-2); padding-top: 14px; }
+.facts div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.facts dd { margin: 0; font: 500 12.5px/1.2 var(--font-mono); padding: 4px 10px; border-radius: 999px; background: var(--tw, var(--pod)); color: var(--tt, var(--ink)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); text-align: right; }
+.facts dd[data-tone="running"], .facts dd[data-tone="Succeeded"] { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.facts dd[data-tone="frozen"], .facts dd[data-tone="freezing"] { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); }
+.facts dd[data-tone="paused"], .facts dd[data-tone="wait"], .facts dd[data-tone="off"] { background: var(--pause-wash); color: var(--ink-2); }
+.facts dd[data-tone="gone"] { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.facts dd[data-tone="overlay"] { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.facts dd[data-tone="base"] { --tw: var(--write-wash); --tc: var(--write); --tt: var(--write-ink); }
+
+.rail { grid-area: rail; min-width: 0; display: flex; gap: 10px; align-items: center; }
+.rail ol { list-style: none; margin: 0; padding: 2px; display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.rail li { flex: none; }
+.step-btn { width: 100%; display: flex; gap: 8px; align-items: center; appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); border-radius: 3px; padding: 7px 10px; cursor: pointer; text-align: left; font: 500 13.5px/1.2 var(--font-body); }
+.step-btn:hover { border-color: var(--line-2); }
+.step-btn .n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 600 11.5px/1 var(--font-mono); background: var(--pod); color: var(--ink-2); }
+.step-btn.done .n { background: var(--line); }
+.step-btn[aria-current="step"] { background: var(--strong); border-color: var(--strong); color: var(--on-strong); }
+.step-btn[aria-current="step"] .n { background: var(--on-strong); color: var(--strong); }
+.step-btn .lbl { display: none; }
+.step-btn[aria-current="step"] .lbl { display: inline; }
+.nav-btn { flex: none; appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 15px/1 var(--font-body); padding: 11px 16px; border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.nav-btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+
+.tl { grid-area: tl; display: grid; gap: 6px; }
+.tl-row { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; align-items: center; }
+.tl-label { text-align: right; font: 500 12.5px/1.2 var(--font-body); color: var(--ink-2); }
+.tl-track { display: flex; gap: 2px; height: 26px; }
+.tl-seg { min-width: 16px; display: grid; place-items: center; font: 500 11.5px/1 var(--font-mono); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.tl-seg.run { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.tl-seg.frozen { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.tl-seg.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 5px, transparent 5px 10px); color: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.tl-seg.paused { background: var(--pause-wash); color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--held); }
+.tl-seg.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tl-seg.gone { background: repeating-linear-gradient(135deg, var(--bug-wash) 0 5px, transparent 5px 10px); color: var(--bug-ink); box-shadow: inset 0 0 0 1.5px var(--bug); }
+.tl-seg.off { background: transparent; color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--held); }
+.tl-seg.cutting { background: repeating-linear-gradient(135deg, var(--csi-wash) 0 6px, transparent 6px 12px); box-shadow: inset 0 0 0 1.5px var(--csi); color: var(--csi-ink); }
+.tl-seg.ready { --tw: var(--csi-wash); --tc: var(--csi); --tt: var(--csi-ink); }
+.tl-seg.active { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tl-note { margin: 4px 0 0 128px; font-size: 13px; color: var(--muted); }
+
+/* scene */
+.scene text { font-family: var(--font-body); fill: var(--ink); }
+.grid-line { fill: none; stroke: var(--grid); stroke-width: 1; }
+.scene .card { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: fill .35s, stroke .35s; }
+.scene .kicker, .scene .k { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .title { font: 500 17px var(--font-display); fill: var(--ink); }
+.scene .line { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+.scene .mono-line { font: 400 12px var(--font-mono); fill: var(--ink-2); }
+.scene .hair { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 1 3; }
+.scene .v { font: 600 12.5px var(--font-mono); fill: var(--ink); }
+.scene[data-vms="Succeeded"] .v { fill: var(--ok-ink); }
+.scene .pod { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.5; }
+.scene .pod-label { font: 500 12.5px var(--font-mono); fill: var(--ink-2); }
+.scene .vm { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; }
+.scene .vm-title { font: 700 16px var(--font-display); fill: var(--ink); }
+.scene .vm-sub { font: 500 11.5px var(--font-mono); fill: var(--muted); }
+.scene .band { fill: var(--band); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .band-label { font: 500 11px var(--font-mono); letter-spacing: .1em; fill: var(--muted); }
+.scene .chip { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .35s; }
+.scene .chip-text { font: 500 14px var(--font-mono); fill: var(--ink); }
+.scene .chip-tag { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .tag { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+
+.scene .guest { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: fill .4s, stroke .4s; }
+.scene[data-guest="frozen"] .guest { fill: var(--ice-wash); stroke: var(--ice); stroke-width: 1.8; }
+.scene[data-guest="paused"] .guest { fill: var(--pause-wash); stroke: var(--held); stroke-width: 1.8; }
+.scene[data-guest="freezing"] .guest { stroke: var(--ice); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.scene[data-pod="crashed"] .pod { fill: var(--bug-wash); stroke: var(--bug); stroke-dasharray: 8 6; }
+.scene[data-pod="crashed"] :is(.vm, .vm-title, .vm-sub, .guest, .guest-title, .badge, .badge-text, .app, .agent-box, .agent-text, .vda, .vda-label, .vda-chain) { opacity: .3; }
+.scene[data-pod="crashed"] :is(.card, .kicker, .title, .mono-line, .mount-g) { opacity: .3; }
+.scene[data-pod="crashed"] .ctrl-g :is(.card, .kicker, .title, .mono-line), .scene[data-pod="crashed"] .band ~ * :is(.card, .kicker, .title) { opacity: 1; }
+.scene[data-guest="off"] :is(.vm, .guest) { stroke-dasharray: 6 5; }
+.scene[data-guest="off"] :is(.guest-title, .app, .agent-box, .agent-text, .vda, .vda-label, .vda-chain) { opacity: .4; }
+.scene:is([data-guest="gone"], [data-guest="off"]) .io-g.write { opacity: 0; }
+.scene[data-guest="gone"] .badge { fill: var(--bug-wash); stroke: var(--bug); }
+.scene[data-guest="gone"] .badge-text { fill: var(--bug-ink); }
+.scene[data-guest="off"] .badge { fill: var(--card); stroke: var(--held); }
+.scene[data-guest="off"] .badge-text { fill: var(--held-ink); }
+.scene .crash-mark { opacity: 0; transition: opacity .3s; }
+.scene[data-pod="crashed"] .crash-mark { opacity: 1; }
+.scene .crash-pill { fill: var(--bug); }
+.scene .crash-text { font: 600 12px var(--font-mono); letter-spacing: .12em; fill: var(--on-brand); }
+.scene .guest-title { font: 500 13.5px var(--font-body); }
+.scene .badge { fill: var(--ok-wash); stroke: var(--ok); stroke-width: 1.2; transition: fill .3s, stroke .3s; }
+.scene .badge-text { font: 600 10.5px var(--font-mono); letter-spacing: .07em; fill: var(--ok-ink); }
+.scene[data-guest="frozen"] .badge { fill: var(--card); stroke: var(--ice); }
+.scene[data-guest="frozen"] .badge-text { fill: var(--ice-ink); }
+.scene[data-guest="paused"] .badge { fill: var(--card); stroke: var(--held); }
+.scene[data-guest="paused"] .badge-text { fill: var(--held-ink); }
+.scene[data-guest="freezing"] .badge { fill: var(--card); stroke: var(--ice); stroke-dasharray: 3 3; }
+.scene[data-guest="freezing"] .badge-text { fill: var(--ice-ink); }
+.scene .ic { opacity: 0; transition: opacity .3s; }
+.scene[data-guest="running"] .ic-run, .scene:is([data-guest="frozen"], [data-guest="freezing"]) .ic-ice, .scene[data-guest="paused"] .ic-pause { opacity: 1; }
+.scene[data-guest="freezing"] .ic-ice { transform-box: fill-box; transform-origin: center; animation: spin 3s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.scene .ic-run { fill: var(--ok); }
+.scene .ic-ice { fill: none; stroke: var(--ice); stroke-width: 1.6; stroke-linecap: round; }
+.scene .ic-pause { fill: var(--held-ink); }
+.scene .app { transition: opacity .3s; }
+.scene[data-guest="frozen"] .app, .scene[data-guest="paused"] .app { opacity: .45; }
+.scene[data-guest="freezing"] .app { opacity: .7; }
+.scene .doc { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.4; }
+.scene .doc-lines { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linecap: round; }
+.scene .app-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+.scene .agent-box { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .3s; }
+.scene .agent-text { font: 500 12px var(--font-body); fill: var(--ink-2); }
+.scene[data-agent="1"] .agent-box { stroke: var(--ice); stroke-width: 2; }
+.scene[data-agent="1"] .agent-text { fill: var(--ice-ink); font-weight: 700; }
+.scene .vda { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .vda-label { font: 600 12.5px var(--font-mono); }
+.scene .vda-chain { font: 500 12px var(--font-mono); fill: var(--ink-2); }
+.scene[data-writes="overlay"] .vda-chain { fill: var(--accent-ink); font-weight: 600; }
+.scene .vda-verb { fill: var(--muted); font-weight: 400; }
+
+.scene[data-writes="base"][data-held="0"] .base-chip { stroke: var(--write); stroke-width: 1.8; }
+.scene:is([data-commit="1"], [data-commit="ready"]) .base-chip { stroke: var(--accent); stroke-width: 1.8; }
+.scene .lock { opacity: 0; transition: opacity .3s; }
+.scene[data-lock="1"] .lock { opacity: 1; }
+.scene .lock-body { fill: var(--muted); }
+.scene .lock-shackle { fill: none; stroke: var(--muted); stroke-width: 1.8; }
+
+.scene .scratch-g, .scene .vs-g { transition: opacity .35s; }
+.scene .scratch-card { stroke: var(--accent); stroke-width: 1.5; }
+.scene:is([data-scratch="ghost"], [data-scratch="removed"]) .scratch-g { opacity: .6; }
+.scene:is([data-scratch="ghost"], [data-scratch="removed"]) .scratch-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene .ovl, .scene .ovl-empty { opacity: 0; transition: opacity .35s; }
+.scene[data-scratch="empty"] .ovl-empty, .scene[data-scratch="overlay"] .ovl { opacity: 1; }
+.scene[data-scratch="deleted"] .ovl { opacity: .5; }
+.scene .ovl-chip { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.4; }
+.scene .ovl .chip-text { fill: var(--accent-ink); font-size: 13.5px; }
+.scene[data-writes="overlay"][data-held="0"] .ovl-chip { stroke-width: 2.2; }
+.scene .strike { stroke: var(--ink-2); stroke-width: 1.8; opacity: 0; }
+.scene[data-scratch="deleted"] .strike { opacity: 1; }
+.scene .empty-chip { fill: none; stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.scene .empty-text { font: 500 12px var(--font-mono); fill: var(--muted); }
+.scene .mount-g { transition: opacity .35s; }
+.scene .mount-card { fill: var(--card); stroke: var(--accent); stroke-width: 1.5; }
+.scene .mount-name { font: 500 12.5px var(--font-mono); fill: var(--accent-ink); }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-g { opacity: .6; }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-name { fill: var(--muted); }
+.scene .plug-line { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; opacity: 0; transition: opacity .35s; }
+.scene:is([data-plug="plugging"], [data-plug="1"]) .plug-line { opacity: 1; }
+.scene[data-plug="plugging"] .plug-line { stroke-dasharray: 4 4; animation: march .6s linear infinite; }
+.scene[data-plug="unplugging"] .plug-line { opacity: .6; stroke: var(--line-2); stroke-dasharray: 4 4; }
+.scene .plug-pill, .scene .ready-pill { opacity: 0; transition: opacity .3s; }
+.scene:is([data-plug="plugging"], [data-plug="unplugging"]) .plug-pill, .scene[data-commit="ready"] .ready-pill { opacity: 1; }
+
+.scene .vs-card { stroke: var(--csi); stroke-width: 1.5; }
+.scene[data-csi="none"] .vs-g { opacity: .6; }
+.scene[data-csi="none"] .vs-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene .vf { fill: none; stroke: var(--line-2); stroke-width: 1.8; stroke-linecap: round; }
+.scene:not([data-csi="none"]) .vf { stroke: var(--csi); }
+.scene .vs-copy, .scene .vs-check { opacity: 0; transition: opacity .3s; }
+.scene[data-csi="cutting"] .vs-copy { opacity: 1; animation: develop 1.6s ease-in-out infinite; }
+.scene[data-csi="ready"] .vs-copy, .scene[data-csi="ready"] .vs-check { opacity: 1; }
+.scene .vs-chip { fill: var(--csi-wash); stroke: var(--csi); stroke-width: 1.2; }
+.scene .vs-chip-text { font: 600 12px var(--font-mono); fill: var(--csi-ink); }
+.scene .vs-chip-sub { font: 500 10.5px var(--font-body); fill: var(--csi-ink); }
+.scene .vs-check circle { fill: var(--csi); }
+.scene .vs-check path { fill: none; stroke: var(--card); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes develop { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+.mk-write { fill: var(--write); }
+.mk-held { fill: var(--held); }
+.mk-csi { fill: var(--csi); }
+.mk-commit { fill: var(--accent); }
+.mk-ctrl { fill: var(--line-2); }
+.mk-ctrl-on { fill: var(--ink); }
+
+.scene .io-g { transition: opacity .35s ease; }
+.scene .io-track { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.scene .io-dots { fill: none; stroke-width: 5.5; stroke-linecap: round; stroke-dasharray: .1 11; animation: flow .9s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -11.1; } }
+.scene .write .io-track { stroke: var(--write); marker-end: url(#m-write); }
+.scene .write .io-dots { stroke: var(--write); }
+.scene[data-held="1"] .write .io-track { stroke: var(--held); stroke-dasharray: 6 5; marker-end: url(#m-held); }
+.scene[data-held="1"] .write .io-dots { display: none; }
+.scene .a-csi .io-track { stroke: var(--csi); marker-end: url(#m-csi); }
+.scene .a-csi .io-dots { stroke: var(--csi); }
+.scene .a-commit .io-track { stroke: var(--accent); marker-end: url(#m-commit); }
+.scene .a-commit .io-dots { stroke: var(--accent); }
+.scene .a-backing .io-track { stroke: var(--muted); stroke-width: 1.8; stroke-dasharray: 5 5; }
+.scene .io-label { font: 600 11.5px var(--font-mono); paint-order: stroke; stroke: var(--band); stroke-width: 4px; stroke-linejoin: round; fill: var(--tt, var(--muted)); }
+.scene .w-label { font: 600 12px var(--font-mono); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; fill: var(--write-ink); }
+.scene .w-label.wait { fill: var(--held); }
+.scene[data-held="1"] .w-label.go, .scene[data-held="0"] .w-label.wait { display: none; }
+.scene .w-label.flush, .scene[data-guest="freezing"] .w-label.go { display: none; }
+.scene[data-guest="freezing"] .w-label.flush { display: inline; }
+.scene .a-csi-l { fill: var(--csi-ink); }
+.scene .a-commit-l { fill: var(--accent-ink); }
+.scene .a-backing-l { fill: var(--muted); }
+.scene :is(.w-base, .w-base-l, .w-ovl, .w-ovl-l, .a-csi, .a-csi-l, .a-backing, .a-backing-l, .a-commit, .a-commit-l) { opacity: 0; transition: opacity .35s ease; }
+.scene[data-writes="base"] :is(.w-base, .w-base-l),
+.scene[data-writes="overlay"] :is(.w-ovl, .w-ovl-l),
+.scene[data-csi="cutting"] :is(.a-csi, .a-csi-l),
+.scene[data-backing="1"] :is(.a-backing, .a-backing-l),
+.scene:is([data-commit="1"], [data-commit="ready"]) :is(.a-commit, .a-commit-l) { opacity: 1; }
+.scene .a-commit .io-dots.nw { stroke: var(--write); stroke-dasharray: .1 22.1; animation: flow2 1.8s linear infinite; }
+@keyframes flow2 { from { stroke-dashoffset: -5.55; } to { stroke-dashoffset: -27.75; } }
+.scene .nw-l { fill: var(--write-ink); font-size: 11px; }
+.scene[data-switch="pivot"] .w-ovl, .scene[data-switch="overlay"] .w-base { opacity: .5; }
+.scene[data-switch="pivot"] .w-ovl .io-track, .scene[data-switch="overlay"] .w-base .io-track { stroke: var(--held); stroke-dasharray: 2 6; marker-end: none; }
+.scene[data-switch="pivot"] .w-ovl .io-dots, .scene[data-switch="overlay"] .w-base .io-dots { display: none; }
+.scene .switch-g { opacity: 0; transition: opacity .3s; }
+.scene .switch-line { fill: none; stroke: var(--strong); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 300; stroke-dashoffset: 300; transition: stroke-dashoffset .8s ease .1s; }
+.scene .switch-head { fill: var(--strong); opacity: 0; transition: opacity .2s ease .85s; }
+.scene .switch-dot, .scene .switch-pill { fill: var(--strong); }
+.scene .switch-text { font: 600 12px var(--font-mono); letter-spacing: .12em; fill: var(--on-strong); }
+.scene[data-switch="pivot"] .pivot-g, .scene[data-switch="overlay"] .overlay-g { opacity: 1; }
+.scene[data-switch="pivot"] .pivot-g .switch-line, .scene[data-switch="overlay"] .overlay-g .switch-line { stroke-dashoffset: 0; }
+.scene[data-switch="pivot"] .pivot-g .switch-head, .scene[data-switch="overlay"] .overlay-g .switch-head { opacity: 1; }
+
+.scene .ctrl-path path { fill: none; stroke: var(--line-2); stroke-width: 1.6; stroke-dasharray: 4 4; marker-end: url(#m-ctrl); }
+.scene .ctrl-label { font: 600 11px var(--font-mono); fill: var(--ink); opacity: 0; transition: opacity .3s; }
+.scene[data-ctrl="pod"] .c-pod path, .scene[data-ctrl="csi"] .c-csi path, .scene[data-ctrl="scratch"] .c-scratch path { stroke: var(--ink); stroke-width: 2; marker-end: url(#m-ctrl-on); animation: march .6s linear infinite; }
+.scene[data-ctrl="pod"] .c-pod-l, .scene[data-ctrl="csi"] .c-csi-l, .scene[data-ctrl="scratch"] .c-scratch-l { opacity: 1; }
+.scene .c-scratch { opacity: 0; transition: opacity .3s; }
+.scene[data-ctrl="scratch"] .c-scratch { opacity: 1; }
+@keyframes march { to { stroke-dashoffset: -8; } }
+
+/* side by side */
+.compare { display: grid; gap: 22px; }
+:is(.compare, .story) h2 { margin: 0; font: 400 clamp(26px, 1.4vw + 16px, 36px)/1.12 var(--font-display); text-wrap: balance; }
+.compare h3 { margin: 0 0 8px; font: 500 20px/1.2 var(--font-display); }
+.cmp-head p { margin: 8px 0 0; color: var(--ink-2); max-width: 70ch; font-size: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); }
+.cmp-chart-wrap { overflow-x: auto; padding: 20px 24px 16px; }
+.cmp-chart { min-width: 760px; display: grid; gap: 14px; }
+.cmp-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; align-items: start; }
+.cmp-name { font: 500 17px/1.2 var(--font-display); padding-top: 35px; }
+.cmp-lanes { display: grid; gap: 5px; }
+.cmp-callouts { position: relative; height: 22px; }
+.callout { position: absolute; bottom: 6px; transform: translateX(-50%); font: 500 11.5px/1 var(--font-mono); white-space: nowrap; color: var(--tt, var(--ink-2)); }
+.callout::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1.5px; height: 7px; background: currentColor; }
+.callout.ice { color: var(--ice-ink); }
+.callout.pause { color: var(--ink-2); }
+.cmp-track { position: relative; height: 36px; }
+.cmp-track.thin { height: 18px; }
+.cs { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--card); display: flex; align-items: center; padding: 0 10px; font: 500 13px/1 var(--font-body); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.cmp-track.thin .cs { font: 500 11px/1 var(--font-mono); padding: 0 8px; }
+.cs.run { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.cs.frozen { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.cs.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 6px, var(--card) 6px 12px); color: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.cs.paused { background: var(--pause-wash); box-shadow: inset 0 0 0 1.5px var(--held); }
+.cs.commit { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.cs.csi { --tw: var(--csi-wash); --tc: var(--csi); --tt: var(--csi-ink); }
+.cs.scratch { background: transparent; color: var(--accent-ink); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cmp-axis { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; }
+.axis { position: relative; height: 26px; border-top: 1px solid var(--ink); font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.axis span { position: absolute; top: 8px; white-space: nowrap; }
+.axis .tick::before { content: ""; position: absolute; left: 0; top: -9px; width: 1px; height: 6px; background: var(--ink); }
+.legend { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px dotted var(--line-2); display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--ink-2); }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.sw { width: 18px; height: 12px; display: inline-block; background: var(--tw); box-shadow: inset 0 0 0 1px var(--to, var(--tc)); }
+.sw.run { background: var(--ok-wash); box-shadow: inset 0 0 0 1px var(--ok); }
+.sw.frozen { background: var(--ice-wash); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.sw.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 3px, var(--card) 3px 6px); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.sw.paused { background: var(--pause-wash); box-shadow: inset 0 0 0 1.5px var(--held); }
+.sw.commit { background: var(--accent-wash); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw.csi { background: var(--csi-wash); box-shadow: inset 0 0 0 1px var(--csi); }
+.sw.scratch { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.takeaway { margin: 0; font: 400 clamp(21px, .9vw + 15px, 28px)/1.3 var(--font-display); color: var(--brand-ink); max-width: 60ch; text-wrap: balance; }
+.table-wrap { overflow-x: auto; }
+.cmp-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px; }
+.cmp-table th, .cmp-table td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.cmp-table tbody tr:last-child > * { border-bottom: 0; }
+.cmp-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
+.cmp-table thead th { font: 500 14px/1.3 var(--font-body); color: var(--ink); border-bottom: 3px solid var(--ink); }
+.cmp-table thead th.ext { color: var(--accent-ink); }
+.cmp-table tbody th { width: 24%; font-weight: 500; color: var(--ink); }
+.cmp-table td { color: var(--ink-2); }
+.howto { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+.howto-text p { margin: 0 0 10px; color: var(--ink-2); max-width: 60ch; }
+.code-card { min-width: 0; overflow: hidden; }
+.code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.copy-btn { appearance: none; border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; border-radius: 3px; cursor: pointer; }
+.code-card pre { margin: 0; padding: 14px 16px; overflow-x: auto; font: 400 13px/1.6 var(--font-mono); color: var(--ink); }
+.code-card mark { display: inline-block; min-width: 100%; background: var(--accent-wash); color: var(--accent-ink); font-weight: 600; }
+.code-card .c { color: var(--muted); }
+.back-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.foot { position: relative; font-size: 13px; color: var(--muted); padding: 14px 0 0 16px; }
+.foot::before { content: ""; position: absolute; left: 0; top: 14px; bottom: -44px; width: 1.5px; background: var(--brand); }
+.foot p { margin: 0; max-width: 100ch; }
+.foot code { white-space: normal; overflow-wrap: anywhere; }
+
+/* background */
+.story { display: grid; gap: 22px; }
+:is(.compare, .story) { grid-template-columns: minmax(0, 1fr); }
+.story h3, .story h4 { margin: 0; }
+.why-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.why-card { padding: 18px 22px 22px; display: grid; gap: 10px; align-content: start; }
+.why-top { display: flex; justify-content: space-between; align-items: center; min-height: 50px; }
+.why-n { font: 600 13px/1 var(--font-mono); letter-spacing: .06em; color: var(--brand-ink); }
+.why-ic { width: 120px; height: 48px; }
+.why-big { font: 400 46px/1 var(--font-display); color: var(--bug-ink); }
+.why-card h3 { font: 500 21px/1.2 var(--font-display); }
+.why-card p { margin: 0; color: var(--ink-2); }
+.ic-db { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.6; }
+.ic-ok { fill: var(--ok); }
+.ic-ok-mark { fill: none; stroke: var(--card); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic-frozen { fill: var(--ice-wash); stroke: var(--ice); stroke-width: 1.4; }
+.ic-csi { fill: var(--csi); }
+.case { padding: 18px 24px 18px; display: grid; gap: 12px; }
+.case-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 16px; }
+.case-head h3 { font: 500 20px/1.2 var(--font-display); }
+.case-src { font: 500 12.5px/1.2 var(--font-mono); color: var(--muted); }
+.case-wrap { overflow-x: auto; padding: 0 4px; }
+.case-chart { min-width: 700px; display: grid; gap: 5px; padding-right: 30px; }
+.cs.over { background: repeating-linear-gradient(135deg, var(--bug-wash) 0 6px, var(--card) 6px 12px); color: var(--bug-ink); box-shadow: inset 0 0 0 1.5px var(--bug); }
+.callout.bug { color: var(--bug-ink); }
+.limit { position: absolute; top: -5px; bottom: -5px; width: 0; border-left: 2px dashed var(--bug); }
+.axis .mid { transform: translateX(-50%); }
+.axis .mid::before { left: 50%; }
+.case-foot { margin: 0; color: var(--ink-2); max-width: 90ch; }
+.idea { padding: 18px 24px 20px; display: grid; gap: 16px; }
+.idea h3 { font: 500 20px/1.2 var(--font-display); }
+.idea-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; }
+.idea-steps li { position: relative; display: grid; gap: 6px; align-content: start; padding: 14px 16px 16px; background: var(--sheet); border-top: 3px solid var(--tc); }
+.idea-steps li + li::before { content: "→"; position: absolute; left: -30px; top: 50%; transform: translateY(-50%); font: 500 22px/1 var(--font-body); color: var(--ink-2); }
+.idea-steps .ice { --tc: var(--ice); }
+.idea-steps .csi { --tc: var(--csi); }
+.idea-steps .commit { --tc: var(--accent); }
+.idea-steps b { font: 500 18px/1.2 var(--font-display); }
+.idea-steps span { color: var(--ink-2); }
+.gchip { justify-self: start; margin-top: 4px; padding: 3px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); font-style: normal; }
+.gchip.frozen { background: var(--ice-wash); color: var(--ice-ink); }
+.gchip.run { background: var(--ok-wash); color: var(--ok-ink); }
+.idea-foot { margin: 0; color: var(--ink-2); }
+
+/* in the API, per step */
+.api { border: 1px solid var(--line); background: var(--sheet); }
+.api summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 9px 12px; font: 500 13.5px/1.2 var(--font-body); color: var(--ink); }
+.api summary::-webkit-details-marker { display: none; }
+.api summary::before { content: "▸"; margin-right: 8px; color: var(--muted); font-size: 12px; }
+.api[open] summary::before { content: "▾"; }
+.api summary > span:first-child::before { content: none; }
+.api summary span:first-child { flex: 1; }
+.api-count { font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.api-lines { list-style: none; margin: 0; padding: 0 12px 10px; display: grid; gap: 6px; border-top: 1px dotted var(--line-2); padding-top: 9px; }
+.api-lines li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 8px; align-items: baseline; font-size: 12.5px; line-height: 1.4; }
+.api-lines li.dim { opacity: .62; }
+.api-lines .obj { font: 500 10.5px/1 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); padding: 3px 6px; border-radius: 3px; background: var(--pod); white-space: nowrap; }
+.api-lines .obj.event { background: var(--write-wash); color: var(--write-ink); }
+.api-lines .obj.launcher { background: var(--accent-wash); color: var(--accent-ink); }
+.api-lines .name { font: 500 12.5px/1.4 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.api-lines button.name { appearance: none; border: 0; padding: 0; background: transparent; cursor: pointer; text-align: left; text-decoration: underline dotted var(--line-2); text-underline-offset: 3px; }
+.api-lines button.name:hover { color: var(--link); text-decoration-color: var(--link); }
+.api-lines .val { grid-column: 2; color: var(--ink-2); }
+.api-lines .none { grid-column: 1 / -1; color: var(--muted); font-size: 12.5px; }
+.api-list dt.flash { animation: flash 1.8s ease-out; }
+@keyframes flash { 0%, 40% { background: var(--accent-wash); box-shadow: 0 0 0 6px var(--accent-wash); } 100% { background: transparent; box-shadow: none; } }
+
+/* api surface */
+.api-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.api-card { padding: 18px 22px 20px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.api-card.wide { grid-column: 1 / -1; }
+.api-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 14px; }
+.api-head h3 { font: 500 20px/1.2 var(--font-display); }
+.api-kind { font: 500 12px/1.2 var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.api-list { margin: 0; display: grid; gap: 2px; font-size: 14.5px; }
+.api-list dt { font: 500 13px/1.5 var(--font-mono); color: var(--ink); overflow-wrap: anywhere; }
+.api-list dt code { font-size: 1em; background: transparent; padding: 0; white-space: normal; }
+.api-list dd { margin: 0 0 10px; color: var(--ink-2); line-height: 1.5; max-width: 70ch; }
+.api-list dd:last-child { margin-bottom: 0; }
+.api-list dd code { font-size: .86em; }
+.api-sub { margin: 2px 0 4px; padding-top: 8px; border-top: 1px dotted var(--line-2); font: 500 12px/1.2 var(--font-mono); letter-spacing: .04em; color: var(--muted); }
+.reasons { margin: 0 0 12px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.reasons .r { padding: 4px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 1px var(--tc, var(--line-2)); }
+.reasons .r.on { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.reasons .r.off { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.reasons .r.bad { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.reasons .arr { color: var(--ink-2); font-size: 15px; }
+.reasons .lbl { font: 500 12px/1.2 var(--font-body); color: var(--muted); margin-right: 4px; }
+.go { appearance: none; border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: 500 11.5px/1 var(--font-mono); padding: 3px 7px; border-radius: 3px; cursor: pointer; margin-left: 6px; vertical-align: middle; white-space: nowrap; }
+.go:hover { border-color: var(--ink); }
+.api-foot { margin: 0; color: var(--ink-2); max-width: 90ch; }
+
+/* the API surface, in two groups */
+.api-group { display: grid; gap: 16px; }
+.api-group-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 18px; padding-top: 10px; border-top: 1.5px solid var(--brand); }
+.api-group-head h3 { margin: 0; font: 400 25px/1.15 var(--font-display); }
+.api-group-head p { margin: 0; color: var(--ink-2); max-width: 72ch; flex-basis: 100%; }
+.api-nav { display: flex; flex-wrap: wrap; gap: 8px; }
+.api-lines li.read .obj { background: var(--ice-wash); color: var(--ice-ink); }
+.api-lines li.read .val { color: var(--ice-ink); }
+kbd { font: 500 11px/1 var(--font-mono); padding: 2px 5px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 3px; color: var(--ink-2); background: var(--card); }
+
+/* the objects at each step: a bottom drawer, toggled with Y */
+:root { --drawer-default: min(48vh, 560px); }
+.drawer { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; height: var(--drawer-h, var(--drawer-default)); display: grid; grid-template-rows: auto auto minmax(0, 1fr); background: var(--card); border-top: 2px solid var(--ink); box-shadow: 0 -12px 32px rgba(0, 0, 0, .12); }
+.drawer-grip { height: 12px; cursor: ns-resize; touch-action: none; display: grid; place-items: center; background: var(--sheet); }
+.drawer-grip::before { content: ""; width: 44px; height: 4px; border-radius: 2px; background: var(--line-2); }
+.drawer-grip:hover::before, body.drawer-resizing .drawer-grip::before { background: var(--ink); }
+body.drawer-resizing { user-select: none; cursor: ns-resize; }
+.drawer-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 9px 20px; border-bottom: 1px solid var(--line); background: var(--sheet); font: 500 13.5px/1.3 var(--font-body); color: var(--ink-2); }
+.drawer-title { margin-right: auto; min-width: 0; color: var(--ink); }
+.drawer-title b { font-weight: 500; color: var(--brand-ink); }
+.drawer-modes { display: inline-flex; border: 1px solid var(--line-2); border-radius: 3px; overflow: hidden; }
+.drawer-modes button { appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; cursor: pointer; }
+.drawer-modes button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.drawer-legend { list-style: none; margin: 0; padding: 0; display: flex; gap: 12px; font: 500 12px/1 var(--font-mono); color: var(--ink-2); }
+.drawer-legend i { display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; background: var(--tw); box-shadow: inset 0 0 0 1px var(--tc); }
+.add { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.chg { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.del { --tw: var(--bug-wash); --tc: var(--bug); --tt: var(--bug-ink); }
+.rd { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); }
+.drawer-keys { font-size: 12px; color: var(--muted); }
+.drawer-close { appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; border-radius: 3px; cursor: pointer; }
+.drawer-close:hover { background: var(--ink); color: var(--paper); }
+.drawer-close:hover kbd { color: var(--paper); background: transparent; border-color: var(--paper); }
+.drawer-body { overflow: auto; padding: 16px 20px 22px; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 14px; align-content: start; }
+.obj-card { border: 1px solid var(--line); background: var(--card); min-width: 0; display: grid; grid-template-rows: auto minmax(0, 1fr); }
+.obj-card.touched { border-color: var(--ink); }
+.obj-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; padding: 9px 12px; border-bottom: 1px dotted var(--line-2); }
+.obj-kind { font: 500 15px/1.2 var(--font-display); color: var(--ink); }
+.obj-name, .obj-note { font: 500 12px/1.2 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
+.obj-note { color: var(--muted); }
+.obj-api { font: 500 11px/1.2 var(--font-mono); color: var(--muted); margin-left: auto; }
+.obj-badge { font: 500 10.5px/1 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; padding: 3px 7px; border-radius: 3px; background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 1px var(--tc, transparent); }
+.obj-head .go { margin-left: 0; }
+.yaml { margin: 0; padding: 8px 0 10px; font: 400 12.5px/1.6 var(--font-mono); color: var(--ink-2); overflow-x: auto; }
+.yaml .ln { display: flex; align-items: baseline; gap: 0 8px; padding: 0 12px 0 6px; white-space: pre; }
+.yaml .ln.stack { flex-wrap: wrap; }
+.yaml .ln.stack em.by { flex-basis: 100%; }
+.yaml .ln.stack .t { flex: 1 1 0; }
+.yaml .ln i { flex: none; width: 10px; font-style: normal; text-align: center; color: var(--tc, var(--muted)); }
+.yaml .ln .t { flex: 1 1 auto; min-width: 0; }
+.yaml .ln .k { color: var(--ink); }
+.yaml .ln em.by { flex: none; margin-left: auto; max-width: 100%; white-space: normal; text-align: right; font: 500 10.5px/1.3 var(--font-body); font-style: normal; color: var(--muted); padding-left: 10px; }
+.yaml .ln.add, .yaml .ln.chg, .yaml .ln.del, .yaml .ln.rd { background: var(--tw); color: var(--tt); }
+.yaml .ln.add .k, .yaml .ln.chg .k, .yaml .ln.del .k, .yaml .ln.rd .k, .yaml .ln.add em.by, .yaml .ln.chg em.by, .yaml .ln.del em.by, .yaml .ln.rd em.by { color: var(--tt); }
+.yaml .ln.del .t { text-decoration: line-through; }
+.yaml .ln s { text-decoration: line-through; opacity: .62; }
+.yaml .ln.gap { color: var(--muted); }
+.drawer-none, .drawer-unchanged { grid-column: 1 / -1; margin: 0; font-size: 13.5px; color: var(--ink-2); }
+.drawer-unchanged { color: var(--muted); }
+body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default)); }
+@media (max-width: 920px) {
+  :root { --drawer-default: 62vh; }
+  .drawer-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) { .step-btn[aria-current="step"] .lbl { display: none; } }
+@media (max-width: 920px) {
+  .walk { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "rail" "narr" "tl"; }
+  .scene { height: auto; max-height: max(420px, calc(100vh - 300px)); }
+  .narr-in { position: static; }
+  .howto, .why-cards, .api-grid { grid-template-columns: minmax(0, 1fr); }
+  .idea-steps { grid-template-columns: minmax(0, 1fr); gap: 34px; }
+  .idea-steps li + li::before { content: "↓"; left: 50%; top: -28px; transform: translateX(-50%); }
+  .tl-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .tl-note { margin-left: 0; }
+  .tl-label { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="m-write" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-write" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-held" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-held" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-csi" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-csi" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-commit" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-commit" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path class="mk-ctrl" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl-on" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path class="mk-ctrl-on" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path class="grid-line" d="M20 0H0V20"/></pattern>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <button class="dark-switch" id="dark-btn" type="button" role="switch" aria-checked="false" title="Dark mode (D)">Dark<span class="track"></span></button>
+    <div class="title-block">
+      <p class="eyebrow">KubeVirt · VirtualMachineSnapshot · spec.snapshotMode</p>
+      <h1><span class="flow-word" data-word="direct">Direct</span> vs <span class="flow-word" data-word="external">External</span> VM snapshots</h1>
+      <p class="lede">One running VM with one disk. Step through each flow to see where the guest's writes go and how long the guest stays frozen.</p>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="tablist" aria-label="Flow">
+        <button class="tab" role="tab" type="button" data-view="background" aria-selected="true">Background</button>
+        <button class="tab" role="tab" type="button" data-view="direct" aria-selected="false">Direct <small>default</small></button>
+        <button class="tab" role="tab" type="button" data-view="external" aria-selected="false">External <small>new</small></button>
+        <button class="tab" role="tab" type="button" data-view="recovery" aria-selected="false">Crash recovery <small>new</small></button>
+        <button class="tab" role="tab" type="button" data-view="compare" aria-selected="false">Side by side</button>
+        <button class="tab" role="tab" type="button" data-view="api" aria-selected="false">API surface</button>
+      </div>
+      <button class="ghost-btn" id="yaml-btn" type="button" aria-pressed="false" title="The objects at this step, as YAML (Y)">YAML</button>
+      <button class="ghost-btn" id="present" type="button">Present</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-background" class="story" aria-label="Background">
+      <div class="cmp-head">
+        <h2>Online VMs need application-consistent snapshots</h2>
+        <p>Customers back up VMs while they run. The snapshot has to be clean to restore from.</p>
+      </div>
+
+      <ol class="why-cards">
+        <li class="panel why-card">
+          <div class="why-top">
+            <span class="why-n">01</span>
+            <svg class="why-ic" viewBox="0 0 120 48" aria-hidden="true">
+              <path class="ic-db" d="M70 9V37C70 40 77 42 86 42S102 40 102 37V9"/>
+              <ellipse class="ic-db" cx="86" cy="9" rx="16" ry="5"/>
+              <path class="ic-db" d="M70 18.5C70 21.5 77 23.5 86 23.5S102 21.5 102 18.5M70 28C70 31 77 33 86 33S102 31 102 28" fill="none"/>
+              <circle class="ic-ok" cx="106" cy="37" r="9"/>
+              <path class="ic-ok-mark" d="M101.6 37.2l3 3 5.8-6"/>
+            </svg>
+          </div>
+          <h3>Application-consistent</h3>
+          <p>The guest agent freezes the guest: apps flush their data and hold new writes.</p>
+        </li>
+        <li class="panel why-card">
+          <div class="why-top">
+            <span class="why-n">02</span>
+            <svg class="why-ic" viewBox="0 0 120 48" aria-hidden="true">
+              <rect class="ic-frozen" x="2" y="2" width="116" height="11"/>
+              <rect class="ic-csi" x="2" y="17" width="30" height="3.5"/>
+              <rect class="ic-csi" x="14" y="22" width="32" height="3.5"/>
+              <rect class="ic-csi" x="28" y="27" width="34" height="3.5"/>
+              <rect class="ic-csi" x="44" y="32" width="36" height="3.5"/>
+              <rect class="ic-csi" x="60" y="37" width="38" height="3.5"/>
+              <rect class="ic-csi" x="78" y="42" width="40" height="3.5"/>
+            </svg>
+          </div>
+          <h3>Frozen while CSI takes the VolumeSnapshots</h3>
+          <p>Direct keeps the guest frozen until every disk has its VolumeSnapshot. Each disk adds to the wait.</p>
+        </li>
+        <li class="panel why-card">
+          <div class="why-top">
+            <span class="why-n">03</span>
+            <span class="why-big">10 s</span>
+          </div>
+          <h3>Windows gives up after 10 seconds</h3>
+          <p>VSS holds writes for 10 seconds at most. Then its writers fail: crash-consistent only.</p>
+        </li>
+      </ol>
+
+      <div class="panel case">
+        <div class="case-head">
+          <h3>A Windows VM with 6 disks</h3>
+          <span class="case-src">Direct · an example, about 2 s per VolumeSnapshot</span>
+        </div>
+        <div class="case-wrap">
+          <div class="case-chart" role="img" aria-label="Example timeline. Freezing takes 1 second. The guest then stays frozen while CSI takes 6 VolumeSnapshots, about 2 seconds each, 12 seconds in all. VSS stops holding writes 10 seconds after the freeze, so the thaw at 13 seconds fails.">
+            <div class="cmp-callouts">
+              <span class="callout bug" style="left:81.6%">VSS limit: 10 s frozen</span>
+              <span class="callout bug" style="left:96.4%">thaw fails</span>
+            </div>
+            <div class="cmp-track thin">
+              <div class="cs csi" style="left:7.4%;width:89%">CSI takes 6 VolumeSnapshots</div>
+            </div>
+            <div class="cmp-track">
+              <div class="cs freezing" style="left:0;width:7.4%">Freezing</div>
+              <div class="cs frozen" style="left:7.4%;width:74.2%">Guest frozen</div>
+              <div class="cs over" style="left:81.6%;width:14.8%">writes resume</div>
+              <div class="limit" style="left:81.6%"></div>
+            </div>
+            <div class="axis">
+              <span class="tick" style="left:0">0 s</span>
+              <span class="tick mid" style="left:7.4%">1 s</span>
+              <span class="tick mid" style="left:81.6%">11 s</span>
+              <span class="tick mid" style="left:96.4%">13 s</span>
+            </div>
+          </div>
+        </div>
+        <p class="case-foot">The thaw fails with <code>0x80042314</code>, and the guest agent reports "fsfreeze is limited up to 10 seconds". Every extra disk pushes the freeze further past the limit.</p>
+      </div>
+
+      <div class="panel idea">
+        <h3>The idea: freeze only to switch the disks</h3>
+        <ol class="idea-steps">
+          <li class="ice"><b>Freeze, switch, thaw</b><span>One libvirt call puts every disk on a qcow2 overlay.</span><em class="gchip frozen">guest frozen</em></li>
+          <li class="csi"><b>VolumeSnapshots</b><span>CSI snapshots the base disks, which no longer change.</span><em class="gchip run">guest running</em></li>
+          <li class="commit"><b>Merge back</b><span>Block commit copies the overlays into the base disks.</span><em class="gchip run">guest running</em></li>
+        </ol>
+        <p class="idea-foot">One test run: 319 ms frozen. VMware does the same with delta disks.</p>
+      </div>
+
+      <p class="takeaway">The guest should stay frozen as long as the hypervisor needs, not as long as the storage needs.</p>
+
+      <div class="back-row">
+        <button class="nav-btn primary" id="to-direct" type="button">Direct flow →</button>
+      </div>
+    </section>
+
+    <section id="view-walk" class="walk" aria-label="Step by step" hidden>
+      <div class="stage">
+        <svg id="scene" class="scene" viewBox="0 0 960 560" role="img" aria-label="Diagram of the snapshot data path at the current step"
+             data-flow="direct" data-pod="1" data-guest="running" data-writes="base" data-held="0" data-scratch="ghost" data-plug="none" data-backing="0" data-commit="0" data-csi="none" data-ctrl="none" data-agent="0" data-lock="0" data-switch="none" data-vms="none">
+          <rect width="960" height="560" fill="url(#grid)"/>
+
+          <g class="ctrl-g">
+            <rect class="card" x="24" y="40" width="224" height="196" rx="2"/>
+            <text class="kicker" x="42" y="65">CONTROL PLANE</text>
+            <text class="title" x="42" y="89">virt-controller</text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="121">Watching for VMSnapshots</text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="143"></text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="165"></text>
+            <path class="hair" d="M42 186H230"/>
+            <text class="k" x="42" y="214">VMSNAPSHOT</text>
+            <text class="v" id="vms" x="230" y="214" text-anchor="end">none</text>
+          </g>
+          <g class="ctrl-path c-pod"><path d="M250 120H292"/></g>
+          <text class="ctrl-label c-pod-l" x="271" y="110" text-anchor="middle">asks</text>
+
+          <rect class="pod" x="296" y="24" width="640" height="268" rx="0"/>
+          <text class="pod-label" id="pod-label" x="316" y="49">virt-launcher pod</text>
+
+          <rect class="vm" x="316" y="62" width="344" height="210" rx="2"/>
+          <text class="vm-title" x="332" y="87">VM</text>
+          <text class="vm-sub" x="372" y="87">QEMU / KVM</text>
+          <rect class="guest" x="332" y="98" width="312" height="116" rx="2"/>
+          <text class="guest-title" x="348" y="124">Guest OS</text>
+          <rect class="badge" x="530" y="108" width="104" height="22" rx="11"/>
+          <circle class="ic ic-run" cx="545" cy="119" r="4"/>
+          <path class="ic ic-ice" d="M545 112.5V125.5M539.4 115.8L550.6 122.2M539.4 122.2L550.6 115.8"/>
+          <g class="ic ic-pause"><rect x="541" y="114" width="3" height="10" rx="1"/><rect x="546.5" y="114" width="3" height="10" rx="1"/></g>
+          <text class="badge-text" id="guest-badge" x="556" y="123">RUNNING</text>
+          <g class="app">
+            <path class="doc" d="M350 140h19l8 8v27a2 2 0 0 1-2 2h-25a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+            <path class="doc-lines" d="M354 154h17M354 160h17M354 166h11"/>
+            <text class="guest-title" x="388" y="154">app</text>
+            <text class="app-sub" x="388" y="170">writing files</text>
+          </g>
+          <rect class="agent-box" x="476" y="178" width="158" height="26" rx="2"/>
+          <text class="agent-text" x="555" y="195" text-anchor="middle">guest agent</text>
+          <rect class="vda" x="332" y="226" width="312" height="34" rx="2"/>
+          <text class="vda-label" x="346" y="248">vda</text>
+          <text class="vda-chain" id="vda-chain" x="632" y="248" text-anchor="end"><tspan class="vda-verb">uses </tspan>disk.img</text>
+          <g class="crash-mark"><rect class="crash-pill" x="458" y="141" width="176" height="30"/><text class="crash-text" x="546" y="160.5" text-anchor="middle">LAUNCHER CRASHED</text></g>
+
+          <rect class="card" x="680" y="62" width="236" height="154" rx="2"/>
+          <text class="kicker" x="698" y="86">VIRT-LAUNCHER</text>
+          <text class="title" x="698" y="110">libvirt calls</text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="140">domain running</text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="160"></text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="180"></text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="200"></text>
+
+          <g class="mount-g">
+            <rect class="mount-card" x="680" y="228" width="236" height="44" rx="2"/>
+            <text class="kicker" x="698" y="246">UTILITY VOLUME</text>
+            <text class="mount-name" id="mount-name" x="698" y="263">not attached</text>
+          </g>
+
+          <rect class="band" x="24" y="316" width="912" height="228" rx="0"/>
+          <text class="band-label" x="44" y="341">STORAGE · CSI DRIVER</text>
+
+          <g class="vs-g">
+            <rect class="card vs-card" x="48" y="360" width="216" height="160" rx="2"/>
+            <text class="kicker" x="66" y="385">VOLUMESNAPSHOT</text>
+            <text class="title" x="66" y="409">of rootdisk</text>
+            <g class="vs-check"><circle cx="242" cy="403" r="9"/><path d="M237.5 403l3 3 5.5-6"/></g>
+            <path class="vf" d="M66 434v-10h10M236 424h10v10M246 464v10h-10M76 474h-10v-10"/>
+            <g class="vs-copy">
+              <rect class="vs-chip" x="78" y="429" width="156" height="40" rx="2"/>
+              <text class="vs-chip-text" x="156" y="446" text-anchor="middle">disk.img</text>
+              <text class="vs-chip-sub" x="156" y="461" text-anchor="middle">as it was at the freeze</text>
+            </g>
+            <text class="tag" id="vs-status" x="66" y="503">not created</text>
+          </g>
+
+          <g class="base-g">
+            <rect class="card" x="332" y="360" width="252" height="160" rx="2"/>
+            <text class="kicker" x="350" y="385">PVC</text>
+            <text class="title" x="350" y="409">rootdisk</text>
+            <rect class="chip base-chip" x="350" y="426" width="216" height="44" rx="2"/>
+            <text class="chip-text" x="366" y="453">disk.img</text>
+            <g class="lock" transform="translate(500 438)"><path class="lock-shackle" d="M3 8V5a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="0" y="8" width="14" height="11" rx="2"/></g>
+            <text class="chip-tag" x="552" y="452.5" text-anchor="end">RAW</text>
+            <text class="tag" id="base-tag" x="350" y="503">the guest's disk, read-write</text>
+          </g>
+
+          <g class="scratch-g">
+            <rect class="card scratch-card" x="664" y="360" width="252" height="160" rx="2"/>
+            <text class="kicker" id="scratch-kicker" x="682" y="385">DIRECT MODE</text>
+            <text class="title" id="scratch-title" x="682" y="409">no scratch PVC</text>
+            <g class="ovl-empty"><rect class="empty-chip" x="682" y="426" width="216" height="44" rx="2"/><text class="empty-text" x="790" y="452.5" text-anchor="middle">empty</text></g>
+            <g class="ovl">
+              <rect class="chip ovl-chip" x="682" y="426" width="216" height="44" rx="2"/>
+              <text class="chip-text" x="698" y="452.5">ovl-rootdisk.qcow2</text>
+              <path class="strike" d="M694 448H886"/>
+            </g>
+            <text class="tag" id="scratch-tag" x="682" y="503">not used in Direct mode</text>
+          </g>
+
+          <g class="ctrl-path c-csi"><path d="M216 238V356"/></g>
+          <text class="ctrl-label c-csi-l" x="226" y="302">creates</text>
+          <g class="ctrl-path c-scratch"><path d="M232 238V344H700V356"/></g>
+          <text class="ctrl-label c-scratch-l" id="c-scratch-l" x="642" y="336" text-anchor="middle">creates</text>
+
+          <g class="io-g a-csi"><path class="io-track" d="M348 446H270"/><path class="io-dots" d="M348 446H270"/></g>
+          <text class="io-label a-csi-l" x="298" y="434" text-anchor="middle">snapshot</text>
+          <g class="io-g a-backing"><path class="io-track" d="M680 438H572"/></g>
+          <text class="io-label a-backing-l" x="624" y="414" text-anchor="middle">backing</text>
+          <text class="io-label a-backing-l" x="624" y="427" text-anchor="middle">file</text>
+          <g class="io-g a-commit"><path class="io-track" d="M680 460H572"/><path class="io-dots" d="M680 460H572"/><path class="io-dots nw" d="M680 460H572"/></g>
+          <text class="io-label a-commit-l" x="624" y="484" text-anchor="middle">block</text>
+          <text class="io-label a-commit-l" x="624" y="497" text-anchor="middle">commit</text>
+          <text class="io-label a-commit-l nw-l" x="624" y="512" text-anchor="middle">+ new</text>
+          <text class="io-label a-commit-l nw-l" x="624" y="525" text-anchor="middle">writes</text>
+          <g class="ready-pill"><rect class="switch-pill" x="594" y="447" width="60" height="26"/><text class="switch-text" x="624" y="464.5" text-anchor="middle">READY</text></g>
+          <path class="plug-line" d="M880 358V274"/>
+          <g class="plug-pill"><rect class="switch-pill" x="838" y="303" width="84" height="26"/><text class="switch-text" id="plug-text" x="880" y="320.5" text-anchor="middle">HOTPLUG</text></g>
+
+          <g class="io-g write"><path class="io-track" d="M363 180V222"/><path class="io-dots" d="M363 180V222"/></g>
+          <g class="io-g write w-base"><path class="io-track" d="M458 262V422"/><path class="io-dots" d="M458 262V422"/></g>
+          <g class="io-g write w-ovl"><path class="io-track" d="M610 262C610 330 868 318 868 422"/><path class="io-dots" d="M610 262C610 330 868 318 868 422"/></g>
+          <g class="w-base-l"><text class="w-label go" x="468" y="307">writes</text><text class="w-label wait" x="468" y="307">writes wait</text><text class="w-label flush" x="468" y="307">flushing</text></g>
+          <g class="w-ovl-l"><text class="w-label go" x="772" y="306">writes</text><text class="w-label wait" x="772" y="306">writes wait</text></g>
+          <g class="switch-g pivot-g">
+            <path class="switch-line" d="M766 338H484"/>
+            <path class="switch-head" d="M470 338l14-7v14z"/>
+            <circle class="switch-dot" cx="766" cy="338" r="4"/>
+            <rect class="switch-pill" x="580" y="325" width="72" height="26" rx="0"/>
+            <text class="switch-text" x="616" y="342.5" text-anchor="middle">PIVOT</text>
+          </g>
+          <g class="switch-g overlay-g">
+            <path class="switch-line" d="M458 338H740"/>
+            <path class="switch-head" d="M754 338l-14-7v14z"/>
+            <circle class="switch-dot" cx="458" cy="338" r="4"/>
+            <rect class="switch-pill" x="520" y="325" width="172" height="26" rx="0"/>
+            <text class="switch-text" x="606" y="342.5" text-anchor="middle">EXTERNAL SNAPSHOT</text>
+          </g>
+        </svg>
+      </div>
+
+      <aside class="narr" aria-live="polite">
+      <div class="narr-in">
+        <p class="meta"><span class="flow-chip" id="flow-chip">Direct</span><span id="step-of">Step 1 of 4</span><span class="tag-chip" id="tag-chip" hidden></span></p>
+        <h2 id="ph-title">The VM is running</h2>
+        <p class="body" id="ph-body">The guest reads and writes <code>disk.img</code> on the <code>rootdisk</code> PVC. No snapshot has been requested yet.</p>
+        <p class="note" id="ph-note" hidden><b>Note</b><span id="ph-note-text"></span></p>
+        <details class="api" id="ph-api">
+          <summary><span>In the API</span><span class="api-count" id="api-count"></span></summary>
+          <ul class="api-lines" id="api-lines"></ul>
+        </details>
+        <dl class="facts">
+          <div><dt>Guest</dt><dd id="f-guest" data-tone="running">Running</dd></div>
+          <div><dt>Writes go to</dt><dd id="f-writes" data-tone="base">disk.img</dd></div>
+          <div><dt>VMSnapshot</dt><dd id="f-vms" data-tone="none">not created</dd></div>
+        </dl>
+      </div>
+      </aside>
+
+      <nav class="rail" aria-label="Steps">
+        <button class="nav-btn" id="prev" type="button">← Back</button>
+        <ol id="steps"></ol>
+        <button class="nav-btn primary" id="next" type="button">Next →</button>
+      </nav>
+
+      <div class="tl" aria-hidden="true">
+        <div class="tl-row"><span class="tl-label">Guest</span><div class="tl-track" id="tl-guest"></div></div>
+        <div class="tl-row"><span class="tl-label">VolumeSnapshot</span><div class="tl-track" id="tl-csi"></div></div>
+        <p class="tl-note">Schematic: widths show order and rough proportion, not measured time. Use ← → or Page Up / Page Down to step, Y for the objects' YAML, F for full screen, D for dark mode.</p>
+      </div>
+    </section>
+
+    <section id="view-compare" class="compare" aria-label="Side by side" hidden>
+      <div class="cmp-head">
+        <h2>Same disk, same CSI snapshot, two flows</h2>
+        <p>Both rows take the same VolumeSnapshot of the same disk. The difference is what the guest does while the CSI driver works.</p>
+      </div>
+
+      <div class="panel cmp-chart-wrap">
+        <div class="cmp-chart" role="img" aria-label="Schematic timeline. Both flows first freeze the guest while it flushes data to disk. Direct then keeps it frozen for the whole CSI snapshot. External keeps it frozen for one libvirt call, and keeps it running during the CSI snapshot and the merge back.">
+          <div class="cmp-row">
+            <div class="cmp-name">Direct</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts"></div>
+              <div class="cmp-track">
+                <div class="cs run" style="left:0;width:8%"></div>
+                <div class="cs freezing" style="left:8%;width:9%">Freezing</div>
+                <div class="cs frozen" style="left:17%;width:45%">Frozen until the storage has snapshotted every disk</div>
+                <div class="cs run" style="left:62%;width:38%">Running</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs csi" style="left:19%;width:41%">CSI snapshot</div></div>
+            </div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-name">External</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts">
+                <span class="callout ice" style="left:26.8%">frozen for one libvirt call</span>
+                <span class="callout" style="left:81%">pivot</span>
+              </div>
+              <div class="cmp-track">
+                <div class="cs run" style="left:0;width:17%">Running</div>
+                <div class="cs freezing" style="left:17%;width:9%">Freezing</div>
+                <div class="cs frozen" style="left:26%;width:1.6%"></div>
+                <div class="cs run" style="left:27.6%;width:41.4%">Running, writes go to the overlay</div>
+                <div class="cs commit" style="left:69%;width:12%">Block commit</div>
+                <div class="cs run" style="left:81%;width:19%">Running</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs csi" style="left:28%;width:41%">CSI snapshot</div></div>
+              <div class="cmp-track thin"><div class="cs scratch" style="left:8%;width:82%">scratch PVC, attached as a utility volume</div></div>
+            </div>
+          </div>
+          <div class="cmp-axis">
+            <span></span>
+            <div class="axis">
+              <span class="tick" style="left:8%">VMSnapshot created</span>
+              <span style="right:0">schematic, not to scale · time →</span>
+            </div>
+          </div>
+        </div>
+        <ul class="legend">
+          <li><span class="sw run"></span>Running</li>
+          <li><span class="sw freezing"></span>Freezing, flushing to disk</li>
+          <li><span class="sw frozen"></span>Filesystems frozen</li>
+          <li><span class="sw commit"></span>Block commit</li>
+          <li><span class="sw csi"></span>CSI snapshot</li>
+          <li><span class="sw scratch"></span>Scratch PVC</li>
+        </ul>
+      </div>
+
+      <div class="howto">
+        <div class="howto-text">
+          <h3>How to ask for it</h3>
+          <p>Set <code>snapshotMode: External</code> on the VirtualMachineSnapshot. Without the field, snapshots keep using Direct.</p>
+          <p><code>overlayScratchSize</code> is optional and is accepted only with External mode. External mode is Alpha and needs the <code>ExternalVMSnapshot</code> feature gate.</p>
+        </div>
+        <div class="panel code-card">
+          <div class="code-head"><span>vmsnapshot.yaml</span><button class="copy-btn" id="copy-yaml" type="button">Copy</button></div>
+<pre id="yaml">apiVersion: snapshot.kubevirt.io/v1beta1
+kind: VirtualMachineSnapshot
+metadata:
+  name: my-vm-snap
+spec:
+  source:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: my-vm
+<mark>  snapshotMode: External</mark>
+  overlayScratchSize: 10Gi  <span class="c"># optional</span></pre>
+        </div>
+      </div>
+
+      <p class="takeaway">Both flows start by freezing, while the guest flushes cached data to disk. Direct then keeps the guest frozen through the whole CSI snapshot. External keeps it frozen for one libvirt call. On Windows, VSS can keep a guest frozen for at most 10 seconds.</p>
+
+      <div class="panel table-wrap">
+        <table class="cmp-table">
+          <thead><tr><th scope="col"></th><th scope="col">Direct</th><th scope="col" class="ext">External</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Freezing</th><td>The guest flushes cached data to disk. KubeVirt gives the freeze call up to 60 seconds</td><td>The same flush, but freezing and the switch to overlays must finish within 10 seconds</td></tr>
+            <tr><th scope="row">Guest frozen</th><td>Until the storage has snapshotted every disk</td><td>For one libvirt call that switches the disks to overlays</td></tr>
+            <tr><th scope="row">Writes during the CSI snapshot</th><td>Wait</td><td>Go to a qcow2 overlay on the scratch PVC</td></tr>
+            <tr><th scope="row">Extra storage</th><td>None</td><td>A scratch PVC, attached as a utility volume and deleted at the end</td></tr>
+            <tr><th scope="row">Guest agent</th><td>Optional, without it there is no freeze</td><td>Required</td></tr>
+            <tr><th scope="row">VMSnapshot succeeds</th><td>When every VolumeSnapshot has a <code>creationTime</code></td><td>When every VolumeSnapshot is <code>readyToUse</code>, before the merge</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="back-row">
+        <button class="nav-btn" id="back-external" type="button">← External flow</button>
+        <button class="nav-btn" id="back-direct" type="button">Direct flow</button>
+      </div>
+    </section>
+
+    <section id="view-api" class="story" aria-label="API surface" hidden>
+      <div class="cmp-head">
+        <h2>Everything the feature adds, object by object</h2>
+        <p>What you can see with <code>kubectl get -o yaml</code> and <code>kubectl get events</code>. The first group is the snapshot itself, the second what crash recovery adds and what it reads before it starts a VM. The step buttons jump to where each one appears; press <kbd>Y</kbd> on any step for the objects' YAML.</p>
+      </div>
+
+      <div class="api-group" id="api-snapshot">
+        <div class="api-group-head">
+          <h3>The snapshot: what External mode adds</h3>
+          <div class="api-nav"><button class="nav-btn" type="button" data-jump="api-recovery">Crash recovery ↓</button></div>
+          <p>Set while a snapshot runs, from the scratch PVC to the merge back. Most of it is gone again when the snapshot is done.</p>
+        </div>
+
+      <div class="api-grid">
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachineSnapshot</h3><span class="api-kind">snapshot.kubevirt.io/v1beta1</span></div>
+          <dl class="api-list">
+            <dt id="api-vms-mode"><code>spec.snapshotMode</code></dt><dd><code>Direct</code> (the default) or <code>External</code>. External needs the <code>ExternalVMSnapshot</code> feature gate, which is Alpha, and <code>UtilityVolumes</code>.</dd>
+            <dt id="api-vms-size"><code>spec.overlayScratchSize</code></dt><dd>Optional size of the scratch PVC. CEL rules: only with External, and greater than zero. Without it: min(failure deadline × 125 MiB/s × 2, disks × 1.1).<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-vms-error"><code>status.error.message</code></dt><dd>"the overlays were gone before the snapshot completed", "Source VM stopped before snapshot capture completed", "Source VM was deleted before snapshot capture completed", or "external mode needs a running guest agent on the source of …".</dd>
+            <div class="api-sub">VirtualMachineSnapshotContent</div>
+            <dt id="api-content-mode"><code>status.snapshotMode</code></dt><dd>The mode the flow actually ran with.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-content-creationtime"><code>status.creationTime</code></dt><dd>In External mode written only once every VolumeSnapshot is <code>readyToUse</code>, while the overlays still protect the base images. The snapshot succeeds here, before the merge back.<button class="go" type="button" data-go="external/7">step 7 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachineInstance</h3><span class="api-kind">kubevirt.io/v1</span></div>
+          <dl class="api-list">
+            <dt id="api-vmi-cond">condition <code>OverlaySnapshotActive</code></dt><dd>Projected by virt-handler from the launcher's domain metadata. Absent means no overlay transaction since this VMI started.<button class="go" type="button" data-go="external/3">step 3 →</button></dd>
+            <div class="reasons">
+              <span class="lbl">reasons</span>
+              <span class="r on">OverlayPreparing</span><span class="arr">→</span><span class="r on">OverlaysReady</span><span class="arr">→</span><span class="r on">OverlayCommitting</span><span class="arr">→</span><span class="r off">OverlayCommitted</span>
+              <span class="lbl" style="margin-left:10px">failures</span><span class="r bad">OverlayCommitFailed</span><span class="r off">OverlaySnapshotFailed</span>
+            </div>
+            <dt id="api-vmi-pvcuid"><code>status.snapshotOverlayPVCUID</code></dt><dd>The scratch PVC the launcher's report was verified against. The controller trusts the condition only when it matches.<button class="go" type="button" data-go="external/5">step 5 →</button></dd>
+            <dt id="api-vmi-utility"><code>spec.utilityVolumes[]</code> type <code>SnapshotOverlay</code></dt><dd>The scratch PVC, attached next to <code>MemoryDump</code> and <code>Backup</code> utility volumes.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-vmi-migratable">condition <code>LiveMigratable=False</code></dt><dd>Reason <code>SnapshotOverlaysNotLiveMigratable</code> while overlays are prepared or active.<button class="go" type="button" data-go="external/3">step 3 →</button></dd>
+            <dt id="api-vmi-ref">annotation <code>snapshot.kubevirt.io/overlay-reference</code></dt><dd>JSON <code>{contentUID, scratchPVCUID}</code>, written right before the switch to overlays. The launcher's report counts only for this transaction.<button class="go" type="button" data-go="external/3">step 3 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachine</h3><span class="api-kind">kubevirt.io/v1</span></div>
+          <dl class="api-list">
+            <dt id="api-vm-inprogress"><code>status.snapshotInProgress</code></dt><dd>Existing field, set as before while the snapshot runs. Cleared when the merge back is verified, or when the source VMI ends.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>Scratch PVC</h3><span class="api-kind">snap-scratch-&lt;content UID&gt;</span></div>
+          <dl class="api-list">
+            <dt id="api-pvc-finalizer">finalizer <code>snapshot.kubevirt.io/overlay-protection</code></dt><dd>Keeps the PVC, and the overlays on it, until the commit is verified. Created with it, together with an owner reference to the content and the <code>owner-vmi-uid</code> annotation.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-pvc-pod">attachment pod <code>hp-volume-*</code></dt><dd>The usual hotplug attachment pod. The launcher sees the PVC under <code>/var/run/kubevirt/hotplug-disks/</code>.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-pvc-overlay">overlay files <code>ovl-&lt;volume&gt;.qcow2</code></dt><dd>One per disk, backing file set to that disk's base image. Deleted at the pivot, so an overlay exists only while its disk needs it.<button class="go" type="button" data-go="external/4">step 4 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>virt-launcher</h3><span class="api-kind">libvirt domain metadata</span></div>
+          <dl class="api-list">
+            <dt id="api-launcher-meta"><code>&lt;snapshotOverlay&gt;</code></dt><dd>KubeVirt metadata in the domain XML: <code>phase</code>, <code>contentUID</code>, <code>scratchPVCUID</code>, <code>message</code>. The phases are the condition reasons above.<button class="go" type="button" data-go="external/3">step 3 →</button></dd>
+            <dt id="api-launcher-monitor">usage monitor</dt><dd>Commits early when the scratch PVC reaches 70 % usage, so the overlays never run out of space.<button class="go" type="button" data-go="external/6">step 6 →</button></dd>
+            <dt id="api-launcher-pause">pause</dt><dd>Each pivot pauses the guest for one libvirt call. The VMI shows a short <code>Paused=True</code> flicker.<button class="go" type="button" data-go="external/9">step 9 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>Events</h3><span class="api-kind">kubectl get events</span></div>
+          <dl class="api-list">
+            <dt id="api-ev-create"><code>SuccessfulOverlayScratchVolumeCreate</code></dt><dd>On the VMSnapshot when the scratch PVC is created.<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt id="api-ev-commitfailed"><code>OverlayCommitFailed</code></dt><dd>Warning: the block commit failed. The overlays stay, the scratch PVC stays protected, and the snapshot controller asks for the commit again.<button class="go" type="button" data-go="external/7">step 7 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card wide">
+          <div class="api-head"><h3>What is refused while overlays are active</h3><span class="api-kind">admission and subresources</span></div>
+          <dl class="api-list">
+            <dt id="api-guard-hotplug">disk and volume changes</dt><dd>"Cannot change disks or volumes while snapshot overlays are prepared or active" (hotplug admitter).<button class="go" type="button" data-go="external/2">step 2 →</button></dd>
+            <dt><code>addvolume</code>, <code>removevolume</code></dt><dd>"VMI … has disks on snapshot overlays".</dd>
+            <dt>volume migration</dt><dd>"cannot migrate the volumes of …, its disks are on snapshot overlays".</dd>
+            <dt id="api-guard-migration">live migration</dt><dd>Blocked through <code>LiveMigratable=False</code>, see the VMI card.</dd>
+          </dl>
+        </div>
+      </div>
+      </div>
+
+      <div class="api-group" id="api-recovery">
+        <div class="api-group-head">
+          <h3>Crash recovery: what it adds, and what it reads</h3>
+          <div class="api-nav"><button class="nav-btn" type="button" data-jump="api-snapshot">↑ The snapshot</button><button class="nav-btn" type="button" data-go="recovery/1">Crash recovery flow</button></div>
+          <p>A launcher that dies with overlays leaves a protected scratch PVC and a blocked VM. No new field, no new object: the next start of the VM reads what the snapshot left behind, and refuses when any identity check fails.</p>
+        </div>
+
+      <div class="api-grid">
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachine</h3><span class="api-kind">kubevirt.io/v1 · the block, and the way out</span></div>
+          <dl class="api-list">
+            <dt id="api-vm-recovery">condition <code>ManualRecoveryRequired</code></dt><dd>Reason <code>UncommittedOverlays</code>. Set by the VM controller when a VMI that carried overlay state ends with its launcher gone and no settled report: <code>OverlaySnapshotActive</code> is not <code>OverlayCommitted</code> or <code>OverlaySnapshotFailed</code> for the scratch PVC in <code>snapshotOverlayPVCUID</code>. The message names the scratch PVC and says that starting the VM recovers the writes. Removed by the snapshot controller once the commit is verified.<button class="go" type="button" data-go="recovery/2">step 2 →</button></dd>
+            <dt id="api-vm-start"><code>start</code> subresource, run strategies</dt><dd>A start is the recovery. <code>virtctl start</code> is refused only for other <code>ManualRecoveryRequired</code> reasons. <code>Always</code> and <code>RerunOnFailure</code> VMs restart on their own, so they recover with nobody watching; <code>Manual</code> and <code>Halted</code> VMs stay blocked until someone starts them.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-vm-printable"><code>printableStatus</code></dt><dd><code>Starting</code> while the replacement VMI recovers its overlays, <code>Running</code> once the domain is up.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-vm-committed">annotation <code>snapshot.kubevirt.io/overlays-committed</code></dt><dd>The manual path, for when recovery is refused: commit the overlays by hand, then set the annotation to the scratch PVC's UID. The snapshot controller releases the scratch PVC and clears the block.</dd>
+            <dt id="api-vm-restore">a completed restore</dt><dd>A VirtualMachineRestore newer than the snapshot also clears the block (<code>restore.kubevirt.io/lastRestoreUID</code> changed), at the price of every write newer than that snapshot.</dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachineInstance, the replacement</h3><span class="api-kind">kubevirt.io/v1 · created by the VM controller</span></div>
+          <dl class="api-list">
+            <dt id="api-vmi-pending">annotation <code>snapshot.kubevirt.io/pending-overlay-recovery</code></dt><dd>The scratch PVC name the new VMI recovers. virt-handler holds the domain start until that volume is in <code>spec.utilityVolumes</code>, checking every second: the domain must not start on the base images the overlays still shadow.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-vmi-ref-recovery">annotation <code>snapshot.kubevirt.io/overlay-reference</code></dt><dd>The same <code>{contentUID, scratchPVCUID}</code> the crashed VMI carried, so the new launcher's report is checked against the same transaction.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-vmi-immutable">both annotations are immutable</dt><dd>The VMI update admitter refuses any change: "modification of the snapshot.kubevirt.io/… annotation on a VMI object is prohibited".</dd>
+            <dt id="api-vmi-utility-recovery"><code>spec.utilityVolumes[]</code>, patched in after the create</dt><dd>"cannot create VMI with utility volumes in spec, utility volumes can only be added via hotplug", so the VM controller adds the scratch volume right after creating the VMI, with a JSON patch that tests the VMI's UID.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-vmi-phase"><code>status.phase</code></dt><dd><code>Scheduled</code> while virt-handler waits for the scratch volume, <code>Running</code> once the domain is up on the overlays.<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+            <dt id="api-vmi-cond-recovery">condition <code>OverlaySnapshotActive</code></dt><dd><code>True · OverlayCommitting</code> from the first report, message "recovering the overlays of an interrupted external snapshot"; <code>snapshotOverlayPVCUID</code> is set once the report matches the reference.<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>Scratch PVC, protected</h3><span class="api-kind">snap-scratch-&lt;content UID&gt; · what makes it a candidate</span></div>
+          <dl class="api-list">
+            <dt id="api-pvc-protected">the identity checks</dt><dd>A controller owner reference to a VirtualMachineSnapshotContent, the name <code>snap-scratch-&lt;that content's UID&gt;</code>, and the <code>overlay-protection</code> finalizer. The VM controller lists the namespace's PVCs from its cache and confirms each candidate with one live GET of the content: it must exist, have that UID, and name this VM as its source.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-pvc-owner">annotation <code>snapshot.kubevirt.io/owner-vmi-uid</code></dt><dd>The VMI whose launcher holds the overlays. Written when the PVC is created; moved to the replacement VMI with a JSON patch that tests the PVC's UID, finalizers and resourceVersion, so a concurrent change fails the patch rather than the data.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-pvc-deleting"><code>metadata.deletionTimestamp</code></dt><dd>A scratch PVC being deleted is never recovered: the start is refused.</dd>
+            <dt id="api-pvc-release">release</dt><dd>After the verified commit the snapshot controller removes the finalizer, unplugs and deletes the PVC. Without a verified commit it is released only on the manual path, with the <code>SnapshotOverlayDataDiscarded</code> warning.<button class="go" type="button" data-go="recovery/7">step 7 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>VirtualMachineSnapshotContent, read only</h3><span class="api-kind">snapshot.kubevirt.io/v1beta1 · what the controller checks</span></div>
+          <dl class="api-list">
+            <dt id="api-content-owner"><code>metadata.uid</code>, <code>spec.source.virtualMachine.metadata.uid</code></dt><dd>The content must be the scratch PVC's controller owner and name this VM, by UID, as its source. A content that is gone means nothing to recover.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-content-volumes"><code>spec.source.virtualMachine.spec.template.spec.volumes[]</code></dt><dd>Every PVC or DataVolume volume of the snapshotted VM must still use the same claim in the VM today, matched by volume name. A volume moved to another PVC refuses the recovery.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-content-backups"><code>spec.volumeBackups[].persistentVolumeClaim.metadata.uid</code></dt><dd>Each backed-up PVC must still exist with the recorded UID and not be deleting. A PVC recreated under the same name refuses the recovery: the overlay's backing file would not be the disk it was taken of.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>virt-launcher</h3><span class="api-kind">before the domain is defined</span></div>
+          <dl class="api-list">
+            <dt id="api-launcher-recover">the overlay checks</dt><dd>Each <code>ovl-&lt;volume&gt;.qcow2</code> left on the scratch volume must be qcow2 and have exactly that disk's source as its backing file, a file or a block device. A disk with no overlay was committed before the crash, since overlays are deleted at the pivot. An overlay that belongs to no disk of the VMI refuses the start: its writes would be lost.<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+            <dt id="api-launcher-backing">the domain disk</dt><dd>The disk's original source, type and format move into <code>&lt;backingStore&gt;</code>; the active layer becomes the overlay file, driver <code>qcow2</code>.<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+            <dt id="api-launcher-meta-recovery"><code>&lt;snapshotOverlay&gt;</code> set to <code>OverlayCommitting</code> before the start</dt><dd>With the message "recovering the overlays of an interrupted external snapshot", so nothing captures the base images the recovery is about to write. Log line: "Starting the domain on the overlays left on scratch volume …".<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+            <dt id="api-launcher-commit-recovery">the commit</dt><dd>Once the domain runs, the launcher starts the same active block commit a snapshot ends with. The snapshot controller sees a running replacement VMI, waits for <code>OverlayCommitted</code> for the scratch PVC's UID, retries <code>OverlayCommitFailed</code>, and only then releases the scratch PVC.<button class="go" type="button" data-go="recovery/5">step 5 →</button></dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card">
+          <div class="api-head"><h3>Events</h3><span class="api-kind">kubectl get events</span></div>
+          <dl class="api-list">
+            <dt id="api-ev-failedcreate"><code>FailedCreate</code> on the VM</dt><dd>"Not starting the virtual machine: the snapshot overlays cannot be recovered: …" with the reason, see below. "Error recovering the snapshot overlays: …" when the hotplug patch or the owner move fails; that one is retried on the next pass.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-ev-missing"><code>SnapshotOverlaysMissing</code> on the VM</dt><dd>"Scratch PVC … was deleted before its overlays were committed": a VMI was waiting to recover a scratch PVC that is gone. The recovery context is dropped.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-ev-discarded"><code>SnapshotOverlayDataDiscarded</code> on the content</dt><dd>"Discarding scratch PVC … without a verified commit for VM …. Retained base PVCs may be missing writes.": the manual path released the PVC.</dd>
+          </dl>
+        </div>
+
+        <div class="panel api-card wide">
+          <div class="api-head"><h3>When recovery is refused</h3><span class="api-kind">the VM stays blocked, the manual path applies</span></div>
+          <dl class="api-list">
+            <dt id="api-refused-controller">the VM controller, before the VMI exists</dt><dd>"both snap-scratch-… and snap-scratch-… hold overlays of the VM" · "scratch PVC … is being deleted" · "snapshot content … has no VM template" · "volume rootdisk no longer uses PVC rootdisk" · "PVC rootdisk was replaced or is being deleted". No VMI is created; the <code>FailedCreate</code> event carries the sentence.<button class="go" type="button" data-go="recovery/3">step 3 →</button></dd>
+            <dt id="api-refused-launcher">virt-launcher, before the domain starts</dt><dd>"overlay … does not belong to volume …: format …, backing …, expected …" · "overlay … belongs to no disk of the VMI" · "volume … has no disk driver". The start fails and nothing is written to the base images; the VMI ends, the block is set again, and the VM's start-failure backoff retries.<button class="go" type="button" data-go="recovery/4">step 4 →</button></dd>
+            <dt>then</dt><dd>Commit the overlays by hand and set <code>snapshot.kubevirt.io/overlays-committed</code> to the scratch PVC's UID, or restore a completed snapshot and accept losing the writes newer than it.</dd>
+          </dl>
+        </div>
+      </div>
+      </div>
+
+      <p class="api-foot">Names and messages follow kubevirt main at <code>4a0d813607</code>: <code>pkg/storage/types/snapshotoverlay.go</code>, <code>staging/src/kubevirt.io/api/core/v1/types.go</code>, <code>pkg/storage/snapshot/snapshot.go</code>, <code>pkg/storage/snapshotoverlay/recovery.go</code>, <code>pkg/virt-launcher/virtwrap/storage/recovery.go</code>.</p>
+
+      <div class="back-row">
+        <button class="nav-btn" id="back-compare" type="button">← Side by side</button>
+        <button class="nav-btn" id="back-external-2" type="button">External flow</button>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <p>Follows kubevirt/kubevirt main at <code>4a0d813607</code> (2026-11-04): <code>pkg/storage/snapshot/external.go</code> (virt-controller) and <code>pkg/virt-launcher/virtwrap/storage/external_snapshot.go</code> (virt-launcher). Crash recovery follows <code>pkg/storage/snapshotoverlay/recovery.go</code> and <code>pkg/virt-launcher/virtwrap/storage/recovery.go</code>. The design is VEP 321. The timeline on the Background tab is an example with round numbers, not a measurement. In kubevirt v1.10.0-rc.0 and later, behind the Alpha <code>ExternalVMSnapshot</code> feature gate.</p>
+  </footer>
+</div>
+
+<aside class="drawer" id="drawer" role="region" aria-label="The objects at this step" hidden>
+  <div class="drawer-grip" id="dr-grip" title="Drag to resize, double-click for tall or default"></div>
+  <div class="drawer-head">
+    <span class="drawer-title">The objects at <b id="dr-step"></b></span>
+    <div class="drawer-modes" role="group" aria-label="What to show">
+      <button type="button" data-mode="changes" aria-pressed="true">Changes</button>
+      <button type="button" data-mode="all" aria-pressed="false">Everything</button>
+    </div>
+    <ul class="drawer-legend" aria-hidden="true"><li><i class="add"></i>added</li><li><i class="chg"></i>changed</li><li><i class="del"></i>removed</li><li><i class="rd"></i>read</li></ul>
+    <span class="drawer-keys" title="Y shows or hides the drawer, M switches between changes and everything, ← → step, Shift ↑ ↓ or dragging the top edge resizes it"><kbd>Y</kbd> hide · <kbd>M</kbd> mode · <kbd>Shift</kbd> <kbd>↑</kbd> <kbd>↓</kbd> resize</span>
+    <button class="drawer-close" id="dr-close" type="button">Close <kbd>Esc</kbd></button>
+  </div>
+  <div class="drawer-body" id="dr-body"></div>
+</aside>
+
+<script>
+(() => {
+  const BASE = { pod: "1", guest: "running", writes: "base", held: "0", scratch: "ghost", plug: "none", backing: "0", commit: "0", csi: "none", ctrl: "none", agent: "0", lock: "0", switch: "none" };
+  const GHOST_DIRECT = { kicker: "DIRECT MODE", title: "no scratch PVC", tag: "not used in Direct mode" };
+  const GHOST_EXTERNAL = { kicker: "NOT CREATED YET", title: "no scratch PVC", tag: "created when a snapshot starts" };
+  const scratch = (tag) => ({ kicker: "PVC · UTILITY VOLUME", title: "snap-scratch-<uid>", tag });
+
+  const FLOWS = {
+    direct: {
+      label: "Direct",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "The VM is running",
+          body: "The guest reads and writes `disk.img` on the `rootdisk` PVC. No snapshot has been requested yet.",
+          s: {},
+          ctrl: ["Watching for VMSnapshots"], vms: "none",
+          lv: ["domain running"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: GHOST_DIRECT
+        },
+        {
+          short: "Freezing", w: 1.2,
+          title: "Freeze the guest",
+          body: "A VirtualMachineSnapshot is created. virt-controller asks virt-launcher, through virt-handler, to freeze the guest. Before the guest agent can freeze the filesystems, the guest flushes the dirty data it holds in RAM to disk. How long that takes depends on how much data there is and how fast the disk is.",
+          note: "Windows guests are usually slower, because VSS writers prepare the applications first. KubeVirt gives the freeze call up to 60 seconds.",
+          s: { guest: "freezing", ctrl: "pod", agent: "1" },
+          ctrl: ["VMSnapshot created", "→ freeze the guest"], vms: "InProgress",
+          lv: ["virDomainFSFreeze", "  → guest agent", "    guest-fsfreeze-freeze", "waiting for the flush"],
+          vda: "disk.img", base: "receiving the flushed data", vs: "not created", sc: GHOST_DIRECT
+        },
+        {
+          short: "CSI snapshot", w: 5,
+          title: "Frozen while CSI snapshots the disk",
+          body: "Once the guest is frozen, virt-controller creates a VolumeSnapshot of the `rootdisk` PVC, and the CSI driver takes the snapshot on the storage. Writes wait until the storage has snapshotted every disk of the VM, which each VolumeSnapshot reports with a `creationTime`. So the guest stays frozen as long as the storage needs.",
+          note: "On Windows, VSS can keep the guest frozen for at most 10 seconds.",
+          s: { guest: "frozen", held: "1", ctrl: "csi", csi: "cutting" },
+          ctrl: ["→ create VolumeSnapshot", "Waits for its creationTime"], vms: "InProgress",
+          lv: ["guest still frozen", "waiting for the thaw"],
+          vda: "disk.img", base: "not changing, guest frozen", vs: "snapshot in progress", sc: GHOST_DIRECT
+        },
+        {
+          short: "Thaw", w: 2,
+          title: "Thaw the guest",
+          body: "When every VolumeSnapshot has a `creationTime`, virt-controller thaws the guest and writes resume. The VMSnapshot succeeds, and it is ready to use once its VolumeSnapshots are `readyToUse`.",
+          note: "A Windows guest that has to stay frozen longer than 10 seconds hits the VSS limit, and the VMSnapshot is flagged `QuiesceTimeout`. Every extra disk makes that more likely.",
+          s: { ctrl: "pod", agent: "1", csi: "ready" },
+          ctrl: ["creationTime set", "→ thaw the guest"], vms: "Succeeded",
+          lv: ["virDomainFSThaw", "  → guest agent", "    guest-fsfreeze-thaw"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true", sc: GHOST_DIRECT
+        }
+      ]
+    },
+    external: {
+      label: "External",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "The VM is running",
+          body: "The guest reads and writes `disk.img` on the `rootdisk` PVC. External mode needs the guest agent to be connected.",
+          s: {},
+          ctrl: ["Watching for VMSnapshots"], vms: "none",
+          lv: ["domain running"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: GHOST_EXTERNAL
+        },
+        {
+          short: "Scratch PVC", w: 1.6,
+          title: "Add a scratch PVC",
+          body: "A VirtualMachineSnapshot with `snapshotMode: External` is created. virt-controller creates an empty PVC, `snap-scratch-<content-uid>`, and hot-plugs it into the virt-launcher pod as a utility volume. As with any hot-plugged volume, an attachment pod mounts the PVC on the node and virt-handler bind-mounts it into virt-launcher. Unlike a disk, a utility volume is never shown to the guest.",
+          note: "virt-controller waits until the volume is attached before it asks for the overlays. Its size is `spec.overlayScratchSize`, or an estimate from the snapshot's failure deadline and the size of the disks.",
+          s: { scratch: "empty", plug: "plugging", ctrl: "scratch" }, cmd: "creates",
+          ctrl: ["VMSnapshot created", "→ create a scratch PVC", "→ hot-plug it"], vms: "InProgress",
+          lv: ["domain running", "disks unchanged"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: scratch("empty, mounted in the pod")
+        },
+        {
+          short: "Freezing", w: 1.2,
+          title: "Freeze the guest",
+          body: "virt-controller asks virt-launcher for the overlays. virt-launcher first asks the guest agent to freeze the guest, and the guest flushes the dirty data it holds in RAM to disk. How long that takes depends on how much data there is and how fast the disk is.",
+          note: "External mode gives freezing and the switch in the next step 10 seconds together. If they take longer, the snapshot fails.",
+          s: { guest: "freezing", scratch: "empty", plug: "1", ctrl: "pod", agent: "1" },
+          ctrl: ["→ ask virt-launcher", "  for the overlays"], vms: "InProgress",
+          lv: ["virDomainFSFreeze", "  → guest agent", "    guest-fsfreeze-freeze", "waiting for the flush"],
+          vda: "disk.img", base: "receiving the flushed data", vs: "not created", sc: scratch("empty, mounted in the pod")
+        },
+        {
+          short: "Overlay", w: 0.55,
+          title: "Switch the disk to an overlay",
+          body: "One atomic libvirt call creates `ovl-rootdisk.qcow2` on the scratch PVC and points `vda` at it. `disk.img` becomes the overlay's read-only backing file. libvirt calls this an external snapshot, which gives External mode its name. The guest is still frozen.",
+          note: "With several disks, every disk switches in this same call, so all the overlays start at the same instant.",
+          s: { guest: "frozen", held: "1", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", switch: "overlay" },
+          ctrl: ["Waits for the overlays"], vms: "InProgress",
+          lv: ["virDomainSnapshotCreateXML", "  DISK_ONLY | ATOMIC |", "  NO_METADATA"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "not created", sc: scratch("holds the new overlay")
+        },
+        {
+          short: "Thaw", w: 0.55,
+          title: "Thaw the guest",
+          body: "virt-launcher thaws the guest as soon as the call returns. New writes now go to the overlay, and reads of blocks the guest hasn't rewritten come from `disk.img`.",
+          note: "In one of our test runs, freezing took 207 ms and the guest then stayed frozen for 319 ms.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", agent: "1" },
+          ctrl: ["Overlays are ready"], vms: "InProgress",
+          lv: ["virDomainFSThaw", "  → guest agent", "    guest-fsfreeze-thaw"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "not created", sc: scratch("new writes land here")
+        },
+        {
+          short: "CSI snapshot", w: 4.6,
+          title: "CSI snapshots the base while the guest runs",
+          body: "virt-controller creates the VolumeSnapshot of the `rootdisk` PVC. `disk.img` no longer changes, so the CSI driver can take as long as it needs while the guest keeps running on the overlay.",
+          note: "If the scratch PVC gets 70% full first, virt-launcher merges the overlay early to keep the guest running, and this snapshot fails.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", ctrl: "csi", csi: "cutting" },
+          ctrl: ["→ create VolumeSnapshot", "Waits for readyToUse"], vms: "InProgress",
+          lv: ["watching scratch usage", "  merges early at 70%"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "snapshot in progress", sc: scratch("new writes land here")
+        },
+        {
+          short: "Commit", w: 2.6,
+          title: "Snapshot done, merge the overlay back",
+          body: "When every VolumeSnapshot is `readyToUse`, virt-controller records the snapshot time and the VMSnapshot succeeds. It then asks virt-launcher to commit, and libvirt's active block commit copies the overlay into `disk.img`. The guest keeps writing to the overlay, and the commit copies each new write into `disk.img` as well.",
+          note: "A write is copied after it lands in the overlay, not as part of it: QEMU runs an active commit in background copy mode. Once only the newest writes are left to copy, libvirt reports the job READY. Each disk has 5 minutes to get there.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "1", ctrl: "pod", csi: "ready" },
+          ctrl: ["readyToUse, time recorded", "→ commit the overlays"], vms: "Succeeded",
+          lv: ["virDomainBlockCommit", "  vda, flags ACTIVE", "copies ovl → disk.img", "  and each new write"],
+          vda: "ovl-rootdisk.qcow2", base: "catching up with the overlay", vs: "readyToUse: true", sc: scratch("being merged into disk.img")
+        },
+        {
+          short: "READY", w: 0.8,
+          title: "The commit is READY",
+          body: "libvirt reports the block job READY once `disk.img` has caught up with the overlay. The guest keeps running and writing to the overlay, and the commit keeps copying each new write into `disk.img`.",
+          note: "When nothing is left to copy, the commit checks for new writes every 100 ms. In a QEMU test, each write reached `disk.img` 0 to 101 ms after the guest wrote it.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "ready", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["block job READY", "copies each new write", "  into disk.img"],
+          vda: "ovl-rootdisk.qcow2", base: "caught up, gets new writes", vs: "readyToUse: true", sc: scratch("new writes land here")
+        },
+        {
+          short: "Pivot", w: 0.55,
+          title: "Pivot vda back to disk.img",
+          body: "libvirt pivots `vda` from the overlay back to `disk.img`, the reverse of step 4. QEMU copies the last blocks still left, holds the disk's I/O for a moment, and switches. That ends the block commit, and the guest's writes go to `disk.img` again. virt-launcher then deletes the overlay file.",
+          note: "With several disks, the commit and the pivot run once per disk, one disk at a time.",
+          s: { scratch: "deleted", plug: "1", switch: "pivot", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["virDomainBlockJobAbort", "  vda, flags PIVOT", "unlink ovl-rootdisk.qcow2"],
+          vda: "disk.img", base: "the guest's disk again", vs: "readyToUse: true", sc: scratch("overlay deleted")
+        },
+        {
+          short: "Cleanup", w: 1.6,
+          title: "Remove the scratch PVC",
+          body: "virt-controller removes the utility volume from the VMI, which unplugs the scratch PVC from the pod, and then deletes the PVC. The VM is back where it started, and the VolumeSnapshot holds `disk.img` as it was at the freeze.",
+          s: { scratch: "removed", plug: "unplugging", ctrl: "scratch", csi: "ready" }, cmd: "deletes",
+          ctrl: ["→ unplug the utility volume", "→ delete the scratch PVC"], vms: "Succeeded",
+          lv: ["domain running", "no overlays left"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true",
+          sc: { kicker: "DELETED", title: "snap-scratch-<uid>", tag: "unplugged and deleted" }
+        }
+      ]
+    },
+    recovery: {
+      label: "Crash recovery",
+      steps: [
+        {
+          short: "Commit", w: 2,
+          title: "Merging the overlay back after a snapshot",
+          body: "The VMSnapshot has succeeded, and virt-launcher is committing `ovl-rootdisk.qcow2` into `disk.img`. The overlay still holds writes that `disk.img` doesn't have yet.",
+          note: "The same recovery covers a crash at any point after the switch to the overlay. If it comes before the VolumeSnapshot is taken, the VMSnapshot fails, and the writes are recovered the same way.",
+          s: { pod: "1", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "1", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["virDomainBlockCommit", "  vda, flags ACTIVE", "copies ovl → disk.img", "  and each new write"],
+          vda: "ovl-rootdisk.qcow2", base: "catching up with the overlay", vs: "readyToUse: true", sc: scratch("being merged into disk.img")
+        },
+        {
+          short: "Crash", w: 1.5, tag: "bug",
+          title: "virt-launcher crashes",
+          body: "The pod dies with the commit unfinished. The VMI goes to `Failed`, and the VM controller sees it still carried overlay state: it sets `ManualRecoveryRequired` on the VM with reason `UncommittedOverlays`. The scratch PVC keeps the overlay, protected by a finalizer, and `disk.img` is missing its writes.",
+          note: "Before this feature, the VM stayed blocked until someone committed the overlay by hand with `qemu-img`, or restored a snapshot and lost the newer writes.",
+          s: { guest: "gone", pod: "crashed", writes: "none", scratch: "overlay", backing: "1", csi: "ready" },
+          ctrl: ["VMI Failed", "VM: ManualRecoveryRequired", "  reason UncommittedOverlays"], vms: "Succeeded",
+          lv: ["no launcher", "no domain"],
+          vda: "ovl-rootdisk.qcow2", base: "missing the overlay's writes", vs: "readyToUse: true",
+          sc: { kicker: "PVC · PROTECTED", title: "snap-scratch-<uid>", tag: "a finalizer keeps the overlay" }
+        },
+        {
+          short: "Start", w: 2,
+          title: "Start the VM: find the overlay",
+          body: "Starting the VM, by hand or through its run strategy, recovers the writes. The VM controller finds the protected scratch PVC of the interrupted snapshot and checks it against the VirtualMachineSnapshotContent: every volume must still use the PVC its overlay was taken of. It creates the VMI with the recovery annotations and hot-plugs the scratch PVC into the new pod.",
+          note: "Recovery is refused, and the VM stays blocked, when two scratch PVCs hold overlays of the VM, the scratch PVC is being deleted, a volume moved to another PVC, or a backing PVC was recreated.",
+          s: { guest: "off", pod: "new", writes: "none", scratch: "overlay", plug: "plugging", backing: "1", ctrl: "scratch", csi: "ready" }, cmd: "hot-plugs",
+          ctrl: ["VM start", "→ find the scratch PVC, check it", "→ create VMI, hot-plug it"], vms: "Succeeded",
+          lv: ["no domain yet", "handler waits for scratch"],
+          vda: "ovl-rootdisk.qcow2", base: "unchanged since the crash", vs: "readyToUse: true", sc: scratch("hot-plugged into the new pod")
+        },
+        {
+          short: "Boot on overlay", w: 1.5, tag: "fix",
+          title: "Start the domain on the overlay",
+          body: "virt-launcher checks every overlay left on the scratch PVC: it is qcow2, its backing file is that disk's own `disk.img`, and it belongs to a disk of the VMI. It then starts the domain with `vda` on `ovl-rootdisk.qcow2` and `disk.img` as its backing store. The guest boots as usual, with the writes the overlay kept.",
+          note: "A disk with no overlay left was committed before the crash: overlays are deleted at their pivot. An overlay that fails the checks stops the start, and nothing is written to `disk.img`.",
+          s: { pod: "new", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", csi: "ready" },
+          ctrl: ["Waits for the domain"], vms: "Succeeded",
+          lv: ["check ovl-rootdisk.qcow2", "  qcow2, backing disk.img", "virDomainCreateXML", "  vda on the overlay"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "readyToUse: true", sc: scratch("the domain runs on the overlay")
+        },
+        {
+          short: "Commit", w: 3,
+          title: "Commit, the same way as after a snapshot",
+          body: "Once the domain runs, virt-launcher starts the same active block commit a snapshot ends with. It copies the overlay into `disk.img`, and each new write too, while the guest runs. The snapshot controller sees the commit running and waits for it.",
+          note: "A commit that fails is retried by the snapshot controller. With several disks, every disk still on an overlay is committed, one disk at a time.",
+          s: { pod: "new", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "1", csi: "ready" },
+          ctrl: ["Sees the commit running", "Waits for it to be verified"], vms: "Succeeded",
+          lv: ["virDomainBlockCommit", "  vda, flags ACTIVE", "copies ovl → disk.img", "  and each new write"],
+          vda: "ovl-rootdisk.qcow2", base: "catching up with the overlay", vs: "readyToUse: true", sc: scratch("being merged into disk.img")
+        },
+        {
+          short: "Pivot", w: 0.6,
+          title: "Pivot vda back to disk.img",
+          body: "libvirt pivots `vda` back to `disk.img`, which now holds every write the overlay had. virt-launcher deletes the overlay and verifies that every disk is back on its base image.",
+          s: { pod: "new", scratch: "deleted", plug: "1", switch: "pivot", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["virDomainBlockJobAbort", "  vda, flags PIVOT", "unlink ovl-rootdisk.qcow2"],
+          vda: "disk.img", base: "the guest's disk again", vs: "readyToUse: true", sc: scratch("overlay deleted")
+        },
+        {
+          short: "Cleanup", w: 1.5,
+          title: "Release the scratch PVC, unblock the VM",
+          body: "Only after virt-launcher reports the verified commit does the snapshot controller release the scratch PVC, unplug it and delete it. It then clears `ManualRecoveryRequired`. The VM is back where it was, with no writes lost.",
+          s: { pod: "new", scratch: "removed", plug: "unplugging", ctrl: "scratch", csi: "ready" }, cmd: "deletes",
+          ctrl: ["Commit verified", "→ unplug, delete the scratch PVC", "→ clear ManualRecoveryRequired"], vms: "Succeeded",
+          lv: ["domain running", "no overlays left"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true",
+          sc: { kicker: "DELETED", title: "snap-scratch-<uid>", tag: "unplugged and deleted" }
+        }
+      ]
+    }
+  };
+
+
+  // What changes in the API at each step: [object, name, value, anchor on the API surface view, "dim" for a branch that only happens on failure]
+  const API = {
+    direct: [
+      [],
+      [["VMSnapshot", "status.phase", "InProgress"], ["VM", "status.snapshotInProgress", "my-vm-snap", "api-vm-inprogress"]],
+      [["VolumeSnapshot", "created", "one per disk, the controller waits for its creationTime"], ["VMI", "status.fsFreezeStatus", "frozen"]],
+      [["Content", "status.creationTime", "set, the snapshot succeeded", "api-content-creationtime"], ["VMSnapshot", "status.phase", "Succeeded, readyToUse once the VolumeSnapshots are"], ["VM", "status.snapshotInProgress", "removed", "api-vm-inprogress"], ["VMI", "status.fsFreezeStatus", "cleared"]]
+    ],
+    external: [
+      [["VMI", "condition AgentConnected", "True, required by External mode"]],
+      [["VMSnapshot", "status.phase", "InProgress"], ["Content", "status.snapshotMode", "External", "api-content-mode"], ["VM", "status.snapshotInProgress", "my-vm-snap", "api-vm-inprogress"], ["PVC", "snap-scratch-<uid>", "created, owned by the content, with the overlay-protection finalizer and the owner-vmi-uid annotation", "api-pvc-finalizer"], ["event", "SuccessfulOverlayScratchVolumeCreate", "on the VMSnapshot", "api-ev-create"], ["VMI", "spec.utilityVolumes[]", "type SnapshotOverlay, hot-plugged", "api-vmi-utility"], ["VMI", "disk and volume changes", "refused from now on", "api-guard-hotplug"]],
+      [["VMI", "annotation overlay-reference", "{contentUID, scratchPVCUID}", "api-vmi-ref"], ["launcher", "<snapshotOverlay> phase", "OverlayPreparing", "api-launcher-meta"], ["VMI", "condition OverlaySnapshotActive", "True · OverlayPreparing", "api-vmi-cond"], ["VMI", "condition LiveMigratable", "False · SnapshotOverlaysNotLiveMigratable", "api-vmi-migratable"]],
+      [["PVC", "ovl-rootdisk.qcow2", "created, backing file disk.img", "api-pvc-overlay"]],
+      [["launcher", "<snapshotOverlay> phase", "OverlaysReady", "api-launcher-meta"], ["VMI", "condition OverlaySnapshotActive", "True · OverlaysReady", "api-vmi-cond"], ["VMI", "status.snapshotOverlayPVCUID", "the scratch PVC's UID", "api-vmi-pvcuid"]],
+      [["VolumeSnapshot", "created", "the controller waits for readyToUse"], ["launcher", "usage monitor", "commits early at 70 % and the snapshot fails", "api-launcher-monitor", "dim"]],
+      [["Content", "status.creationTime", "set, the snapshot succeeded", "api-content-creationtime"], ["VMSnapshot", "status.phase", "Succeeded · readyToUse"], ["launcher", "<snapshotOverlay> phase", "OverlayCommitting", "api-launcher-meta"], ["VMI", "condition OverlaySnapshotActive", "True · OverlayCommitting", "api-vmi-cond"], ["event", "OverlayCommitFailed", "if the commit fails, then it is retried", "api-ev-commitfailed", "dim"]],
+      [["libvirt", "block job", "READY, nothing changes in the API"]],
+      [["VMI", "condition Paused", "True · PausedByUser for a few ms", "api-launcher-pause"], ["PVC", "ovl-rootdisk.qcow2", "deleted", "api-pvc-overlay"], ["launcher", "<snapshotOverlay> phase", "OverlayCommitted", "api-launcher-meta"], ["VMI", "condition OverlaySnapshotActive", "False · OverlayCommitted", "api-vmi-cond"], ["VMI", "condition LiveMigratable", "True again", "api-vmi-migratable"]],
+      [["VMI", "spec.utilityVolumes[]", "removed, the PVC is unplugged", "api-vmi-utility"], ["VMI", "annotation overlay-reference", "removed", "api-vmi-ref"], ["PVC", "finalizer overlay-protection", "removed, the PVC is deleted", "api-pvc-finalizer"], ["VM", "status.snapshotInProgress", "removed", "api-vm-inprogress"]]
+    ],
+    recovery: [
+      [["VMSnapshot", "status.phase", "Succeeded · readyToUse"], ["VMI", "condition OverlaySnapshotActive", "True · OverlayCommitting", "api-vmi-cond"]],
+      [["VMI", "status.phase", "Failed"], ["VMI", "condition OverlaySnapshotActive, snapshotOverlayPVCUID", "checked: not OverlayCommitted for this scratch PVC", "api-vmi-cond", "read"], ["VM", "condition ManualRecoveryRequired", "True · UncommittedOverlays", "api-vm-recovery"], ["VM", "status.snapshotInProgress", "removed, the source is unlocked", "api-vm-inprogress"], ["PVC", "finalizer overlay-protection", "keeps the PVC and the overlay", "api-pvc-finalizer"]],
+      [["PVC", "owner reference, name, finalizer", "checked: the content's protected scratch PVC", "api-pvc-protected", "read"], ["Content", "spec.source.virtualMachine.metadata.uid", "checked: this VM's UID", "api-content-owner", "read"], ["Content", "source VM template volumes", "checked: rootdisk still uses PVC rootdisk", "api-content-volumes", "read"], ["Content", "spec.volumeBackups[].persistentVolumeClaim.metadata.uid", "checked: PVC rootdisk still has this UID", "api-content-backups", "read"], ["VM", "start", "allowed: a start is the recovery", "api-vm-start"], ["VM", "printableStatus", "Starting", "api-vm-printable"], ["VMI", "annotation pending-overlay-recovery", "snap-scratch-<uid>", "api-vmi-pending"], ["VMI", "annotation overlay-reference", "{contentUID, scratchPVCUID}", "api-vmi-ref-recovery"], ["VMI", "spec.utilityVolumes[]", "type SnapshotOverlay, patched in after the create", "api-vmi-utility-recovery"], ["VMI", "status.phase", "Scheduled, virt-handler waits for the scratch volume", "api-vmi-phase"], ["PVC", "annotation owner-vmi-uid", "moved to the new VMI", "api-pvc-owner"], ["event", "FailedCreate", "if the recovery is refused, the VM stays blocked", "api-ev-failedcreate", "dim"], ["event", "SnapshotOverlaysMissing", "if the scratch PVC was deleted meanwhile", "api-ev-missing", "dim"]],
+      [["launcher", "overlay checks", "qcow2, backing file disk.img, a disk of the VMI", "api-launcher-recover", "read"], ["launcher", "disk vda", "ovl-rootdisk.qcow2, disk.img as its backingStore", "api-launcher-backing"], ["launcher", "<snapshotOverlay> phase", "OverlayCommitting, set before the domain starts", "api-launcher-meta-recovery"], ["VMI", "status.phase", "Running", "api-vmi-phase"], ["VMI", "condition OverlaySnapshotActive", "True · OverlayCommitting", "api-vmi-cond-recovery"], ["VMI", "status.snapshotOverlayPVCUID", "the scratch PVC's UID", "api-vmi-pvcuid"], ["VMI", "condition LiveMigratable", "False · SnapshotOverlaysNotLiveMigratable", "api-vmi-migratable"]],
+      [["launcher", "block commit", "started once the domain runs, the snapshot controller waits for it", "api-launcher-commit-recovery"], ["VM", "condition ManualRecoveryRequired", "still True, until the commit is verified", "api-vm-recovery"], ["event", "OverlayCommitFailed", "if the commit fails, then it is retried", "api-ev-commitfailed", "dim"]],
+      [["VMI", "condition Paused", "True · PausedByUser for a few ms", "api-launcher-pause"], ["PVC", "ovl-rootdisk.qcow2", "deleted", "api-pvc-overlay"], ["launcher", "<snapshotOverlay> phase", "OverlayCommitted", "api-launcher-meta"], ["VMI", "condition OverlaySnapshotActive", "False · OverlayCommitted", "api-vmi-cond"]],
+      [["PVC", "finalizer overlay-protection", "removed, the PVC is deleted", "api-pvc-finalizer"], ["VMI", "spec.utilityVolumes[]", "removed", "api-vmi-utility"], ["VMI", "annotations", "overlay-reference and pending-overlay-recovery removed", "api-vmi-pending"], ["VM", "condition ManualRecoveryRequired", "removed", "api-vm-recovery"], ["VM", "printableStatus", "Running", "api-vm-printable"]]
+    ]
+  };
+
+  // The objects at each step, as `kubectl get -o yaml` would show them, cut down to the fields that
+  // matter. Per object, what changes at each step (1-based): who writes it (by), the fields set, the
+  // fields removed (del), the fields only read (read: field → why). gone is the step the object is deleted at.
+  const REF = "'{\"contentUID\":\"<content uid>\",\"scratchPVCUID\":\"<scratch uid>\"}'";
+  const SCRATCH = "snap-scratch-<uid>", CONTENT = "vmsnapshot-content-<snap uid>", VS = "vmsnapshot-<snap uid>-volume-rootdisk";
+  const snapshotSpec = (mode) => ({ "spec.source.apiGroup": "kubevirt.io", "spec.source.kind": "VirtualMachine", "spec.source.name": "my-vm", ...mode });
+  const snapshotStarted = { "status.phase": "InProgress", "status.virtualMachineSnapshotContentName": CONTENT, "status.indications[Online]": "", "status.indications[GuestAgent]": "" };
+  const snapshotDone = { "status.phase": "Succeeded", "status.readyToUse": "true", "status.creationTime": "<time>" };
+  const contentSpec = { "spec.source.virtualMachine.metadata.name": "my-vm", "spec.source.virtualMachine.metadata.uid": "<vm uid>", "spec.source.virtualMachine.spec.template.spec.volumes[rootdisk].persistentVolumeClaim.claimName": "rootdisk", "spec.volumeBackups[rootdisk].persistentVolumeClaim.metadata.name": "rootdisk", "spec.volumeBackups[rootdisk].persistentVolumeClaim.metadata.uid": "<pvc uid>", "spec.volumeBackups[rootdisk].volumeSnapshotName": VS };
+  const contentDone = { [`status.volumeSnapshotStatus[${VS}].readyToUse`]: "true", [`status.volumeSnapshotStatus[${VS}].creationTime`]: "<time>", "status.creationTime": "<time>", "status.readyToUse": "true" };
+  const scratchVolume = { [`spec.utilityVolumes[${SCRATCH}].persistentVolumeClaim.claimName`]: SCRATCH, [`spec.utilityVolumes[${SCRATCH}].type`]: "SnapshotOverlay" };
+  const scratchStatus = (pod) => ({ [`status.volumeStatus[${SCRATCH}].phase`]: "Ready", [`status.volumeStatus[${SCRATCH}].hotplugVolume.attachPodName`]: pod });
+  const scratchMeta = (vmi) => ({ "metadata.finalizers[snapshot.kubevirt.io/overlay-protection]": "", "metadata.annotations[snapshot.kubevirt.io/owner-vmi-uid]": vmi, "metadata.ownerReferences[VirtualMachineSnapshotContent].name": CONTENT, "metadata.ownerReferences[VirtualMachineSnapshotContent].controller": "true" });
+  const paused = { "status.conditions[Paused].status": "\"True\"", "status.conditions[Paused].reason": "PausedByUser" };
+  const committed = { "status.conditions[OverlaySnapshotActive].status": "\"False\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitted", "status.conditions[LiveMigratable].status": "\"True\"" };
+  const unplugged = [...Object.keys(scratchVolume), "metadata.annotations[snapshot.kubevirt.io/overlay-reference]"];
+  const unplugStatus = [...Object.keys(paused), ...Object.keys(scratchStatus(""))];
+
+  const YAML = {
+    direct: [
+      { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
+        2: [{ by: "you", set: snapshotSpec({}) }, { by: "virt-controller", set: snapshotStarted }],
+        4: { by: "virt-controller", set: snapshotDone }
+      } },
+      { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-creationtime", steps: {
+        2: { by: "virt-controller", set: contentSpec },
+        3: { by: "virt-controller", set: { [`status.volumeSnapshotStatus[${VS}].readyToUse`]: "false" } },
+        4: { by: "virt-controller", set: contentDone }
+      } },
+      { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-inprogress", steps: {
+        1: { by: "virt-controller", set: { "status.printableStatus": "Running" } },
+        2: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
+        4: { by: "virt-controller", del: ["status.snapshotInProgress"] }
+      } },
+      { kind: "VirtualMachineInstance", name: "my-vm", api: "kubevirt.io/v1", card: "api-vmi-cond", steps: {
+        1: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"" } },
+        3: { by: "virt-handler", set: { "status.fsFreezeStatus": "frozen" } },
+        4: { by: "virt-handler", del: ["status.fsFreezeStatus"] }
+      } },
+      { kind: "VolumeSnapshot", name: VS, api: "snapshot.storage.k8s.io/v1", steps: {
+        3: [{ by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
+        4: { by: "CSI", set: { "status.readyToUse": "true", "status.creationTime": "<time>" } }
+      } }
+    ],
+    external: [
+      { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
+        2: [{ by: "you", set: snapshotSpec({ "spec.snapshotMode": "External", "spec.overlayScratchSize": "10Gi" }) }, { by: "virt-controller", set: snapshotStarted }],
+        7: { by: "virt-controller", set: snapshotDone }
+      } },
+      { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-mode", steps: {
+        2: { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External" } },
+        6: { by: "virt-controller", set: { [`status.volumeSnapshotStatus[${VS}].readyToUse`]: "false" } },
+        7: { by: "virt-controller", set: contentDone }
+      } },
+      { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-inprogress", steps: {
+        1: { by: "virt-controller", set: { "status.printableStatus": "Running" } },
+        2: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
+        10: { by: "virt-controller", del: ["status.snapshotInProgress"] }
+      } },
+      { kind: "VirtualMachineInstance", name: "my-vm", api: "kubevirt.io/v1", card: "api-vmi-cond", steps: {
+        1: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"", "status.conditions[LiveMigratable].status": "\"True\"" } },
+        2: [{ by: "virt-controller", set: scratchVolume }, { by: "virt-handler", set: scratchStatus("hp-volume-xxxxx") }],
+        3: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF } },
+            { by: "virt-handler", set: { "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayPreparing", "status.conditions[LiveMigratable].status": "\"False\"", "status.conditions[LiveMigratable].reason": "SnapshotOverlaysNotLiveMigratable" } }],
+        5: { by: "virt-handler", set: { "status.conditions[OverlaySnapshotActive].reason": "OverlaysReady", "status.snapshotOverlayPVCUID": "<scratch uid>" } },
+        7: { by: "virt-handler", set: { "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitting" } },
+        9: { by: "virt-handler", set: { ...paused, ...committed }, del: ["status.conditions[LiveMigratable].reason"] },
+        10: [{ by: "virt-controller", del: unplugged }, { by: "virt-handler", del: unplugStatus }]
+      } },
+      { kind: "PersistentVolumeClaim", name: SCRATCH, api: "v1 · the scratch volume", card: "api-pvc-finalizer", gone: 10, steps: {
+        2: [{ by: "virt-controller", set: { ...scratchMeta("<vmi uid>"), "spec.accessModes[ReadWriteOnce]": "", "spec.volumeMode": "Filesystem", "spec.resources.requests.storage": "10Gi" } }, { by: "CSI", set: { "status.phase": "Bound" } }]
+      } },
+      { kind: "VolumeSnapshot", name: VS, api: "snapshot.storage.k8s.io/v1", steps: {
+        6: [{ by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
+        7: { by: "CSI", set: { "status.readyToUse": "true", "status.creationTime": "<time>" } }
+      } }
+    ],
+    recovery: [
+      { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-recovery", steps: {
+        1: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
+        2: { by: "virt-controller", set: { "status.conditions[ManualRecoveryRequired].status": "\"True\"", "status.conditions[ManualRecoveryRequired].reason": "UncommittedOverlays", "status.conditions[ManualRecoveryRequired].message": "Uncommitted writes remain on scratch PVC `snap-scratch-<uid>`. Starting the VM recovers them. If the recovery is refused, …" }, del: ["status.snapshotInProgress"] },
+        3: { by: "virt-controller", set: { "status.printableStatus": "Starting" }, read: { "status.conditions[ManualRecoveryRequired].reason": "only UncommittedOverlays lets a start go on" } },
+        7: { by: "virt-controller", set: { "status.printableStatus": "Running" }, del: ["status.conditions[ManualRecoveryRequired].status", "status.conditions[ManualRecoveryRequired].reason", "status.conditions[ManualRecoveryRequired].message"] }
+      } },
+      { kind: "VirtualMachineInstance", name: "my-vm", note: "the crashed VMI · uid <vmi uid>", api: "kubevirt.io/v1", card: "api-vmi-cond", gone: 3, steps: {
+        1: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume } },
+            { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitting", "status.snapshotOverlayPVCUID": "<scratch uid>" } }],
+        2: { by: "virt-controller", set: { "status.phase": "Failed" }, read: { "status.conditions[OverlaySnapshotActive].reason": "not OverlayCommitted: the overlay still holds writes", "status.snapshotOverlayPVCUID": "the scratch PVC that report is about" } }
+      } },
+      { kind: "VirtualMachineInstance", name: "my-vm", note: "the replacement · uid <new vmi uid>", api: "kubevirt.io/v1", card: "api-vmi-pending", steps: {
+        3: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/pending-overlay-recovery]": SCRATCH, "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume, "status.phase": "Scheduled" } },
+            { by: "virt-handler", set: scratchStatus("hp-volume-yyyyy") }],
+        4: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitting", "status.conditions[OverlaySnapshotActive].message": "recovering the overlays of an interrupted external snapshot", "status.snapshotOverlayPVCUID": "<scratch uid>", "status.conditions[LiveMigratable].status": "\"False\"", "status.conditions[LiveMigratable].reason": "SnapshotOverlaysNotLiveMigratable" } },
+        6: { by: "virt-handler", set: { ...paused, ...committed }, del: ["status.conditions[OverlaySnapshotActive].message", "status.conditions[LiveMigratable].reason"] },
+        7: [{ by: "virt-controller", del: [...unplugged, "metadata.annotations[snapshot.kubevirt.io/pending-overlay-recovery]"] }, { by: "virt-handler", del: unplugStatus }]
+      } },
+      { kind: "PersistentVolumeClaim", name: SCRATCH, api: "v1 · the scratch volume", card: "api-pvc-protected", gone: 7, steps: {
+        1: [{ by: "virt-controller", set: scratchMeta("<vmi uid>") }, { by: "CSI", set: { "status.phase": "Bound" } }],
+        2: { by: "virt-controller", read: { "metadata.finalizers[snapshot.kubevirt.io/overlay-protection]": "keeps the PVC, and the overlay on it" } },
+        3: { by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/owner-vmi-uid]": "<new vmi uid>" }, read: { "metadata.ownerReferences[VirtualMachineSnapshotContent].name": "the content must exist, with this UID, naming this VM", "metadata.finalizers[snapshot.kubevirt.io/overlay-protection]": "protected: a candidate for recovery" } }
+      } },
+      { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-owner", steps: {
+        1: { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External", "status.creationTime": "<time>", "status.readyToUse": "true" } },
+        3: { by: "virt-controller", read: { "spec.source.virtualMachine.metadata.uid": "must be this VM's UID", "spec.source.virtualMachine.spec.template.spec.volumes[rootdisk].persistentVolumeClaim.claimName": "the VM's rootdisk must still use this claim", "spec.volumeBackups[rootdisk].persistentVolumeClaim.metadata.uid": "PVC rootdisk must still have this UID" } }
+      } },
+      { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
+        1: { by: "virt-controller", set: { "spec.snapshotMode": "External", ...snapshotDone } }
+      } }
+    ]
+  };
+
+  const GUEST_LABEL = { running: "Running", freezing: "Freezing", frozen: "Filesystems frozen", paused: "Paused", gone: "Gone, launcher crashed", off: "Not started yet" };
+  const BADGE = { running: "RUNNING", freezing: "FREEZING", frozen: "FS FROZEN", paused: "PAUSED", gone: "GONE", off: "NOT STARTED" };
+  const POD_LABEL = { 1: "virt-launcher pod", crashed: "virt-launcher pod", new: "new virt-launcher pod" };
+  const TAGS = { bug: "where it goes wrong", fix: "what the recovery adds" };
+  const VIEWS = ["background", "direct", "external", "recovery", "compare", "api"];
+  const STATIC = ["background", "compare", "api"];
+
+  const $ = (id) => document.getElementById(id);
+  const scene = $("scene");
+  const tabs = [...document.querySelectorAll(".tab")];
+  const stepsOl = $("steps"), tlGuest = $("tl-guest"), tlCsi = $("tl-csi");
+  const prevBtn = $("prev"), nextBtn = $("next"), presentBtn = $("present");
+  let view = "background", step = 0, builtFor = null, apiOpen = false;
+
+  const escapeHTML = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const richText = (s) => escapeHTML(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const text = (id, value) => { $(id).textContent = value; };
+  const setVda = (file) => {
+    const verb = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    verb.setAttribute("class", "vda-verb");
+    verb.textContent = "uses ";
+    $("vda-chain").replaceChildren(verb, file);
+  };
+
+  function setLines(name, lines, charWidth) {
+    scene.querySelectorAll(`[data-line="${name}"]`).forEach((el, i) => {
+      const raw = lines[i] || "";
+      const trimmed = raw.trimStart();
+      el.textContent = trimmed;
+      el.setAttribute("x", Number(el.dataset.x) + (raw.length - trimmed.length) * charWidth);
+    });
+  }
+
+  function setFact(id, value, tone) {
+    const el = $(id);
+    el.textContent = value;
+    el.dataset.tone = tone;
+  }
+
+  function build(flowKey) {
+    const flow = FLOWS[flowKey];
+    stepsOl.replaceChildren();
+    tlGuest.replaceChildren();
+    tlCsi.replaceChildren();
+    let readyLabelled = false;
+    flow.steps.forEach((s, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-btn";
+      b.setAttribute("aria-label", `Step ${i + 1}: ${s.title}`);
+      b.title = s.title;
+      b.innerHTML = `<span class="n">${i + 1}</span><span class="lbl">${escapeHTML(s.short)}</span>`;
+      if (s.tag) b.classList.add(s.tag);
+      b.addEventListener("click", () => { step = i; render(); });
+      li.append(b);
+      stepsOl.append(li);
+
+      const st = { ...BASE, ...s.s };
+      const g = document.createElement("div");
+      g.className = `tl-seg ${st.guest === "running" ? "run" : st.guest}`;
+      g.style.flex = `${s.w} 1 0`;
+      g.textContent = i + 1;
+      tlGuest.append(g);
+
+      const c = document.createElement("div");
+      c.className = `tl-seg ${st.csi}`;
+      c.style.flex = `${s.w} 1 0`;
+      if (st.csi === "cutting") c.textContent = "in progress";
+      if (st.csi === "ready" && !readyLabelled) { c.textContent = "ready"; readyLabelled = true; }
+      tlCsi.append(c);
+    });
+    builtFor = flowKey;
+  }
+
+  function render() {
+    tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+    document.querySelectorAll(".flow-word").forEach((w) => w.classList.toggle("on", w.dataset.word === view));
+    const walk = view in FLOWS;
+    $("view-walk").hidden = !walk;
+    STATIC.forEach((v) => { $("view-" + v).hidden = view !== v; });
+    try { history.replaceState(null, "", "#" + view + (walk ? "/" + (step + 1) : "")); } catch (e) { /* the viewer may not allow it */ }
+    if (!walk) { renderDrawer(); return; }
+
+    if (builtFor !== view) build(view);
+    const flow = FLOWS[view];
+    const s = flow.steps[step];
+    const st = { ...BASE, ...s.s };
+
+    Object.entries(st).forEach(([k, v]) => scene.setAttribute("data-" + k, v));
+    scene.setAttribute("data-flow", view);
+    scene.setAttribute("data-vms", s.vms);
+    setLines("ctrl", s.ctrl, 6.6);
+    setLines("lv", s.lv, 7.2);
+    text("vms", s.vms);
+    text("guest-badge", BADGE[st.guest]);
+    text("pod-label", POD_LABEL[st.pod]);
+    setVda(s.vda);
+    text("base-tag", s.base);
+    text("vs-status", s.vs);
+    text("scratch-kicker", s.sc.kicker);
+    text("scratch-title", s.sc.title);
+    text("scratch-tag", s.sc.tag);
+    text("mount-name", st.plug === "none" ? "not attached" : "snap-scratch-<uid>");
+    text("plug-text", st.plug === "unplugging" ? "UNPLUG" : "HOTPLUG");
+    text("c-scratch-l", s.cmd || "");
+
+    const chip = $("flow-chip");
+    chip.textContent = flow.label;
+    chip.className = "flow-chip " + view;
+    const tag = $("tag-chip");
+    tag.hidden = !s.tag;
+    tag.className = "tag-chip " + (s.tag || "");
+    tag.textContent = s.tag ? TAGS[s.tag] : "";
+    text("step-of", `Step ${step + 1} of ${flow.steps.length}`);
+    text("ph-title", s.title);
+    $("ph-body").innerHTML = richText(s.body);
+    $("ph-note").hidden = !s.note;
+    $("ph-note-text").innerHTML = s.note ? richText(s.note) : "";
+    renderAPI(API[view][step] || []);
+
+    const held = st.held === "1";
+    setFact("f-guest", GUEST_LABEL[st.guest], st.guest);
+    if (st.guest === "gone" || st.guest === "off") setFact("f-writes", "none, the VM is down", st.guest);
+    else if (st.guest === "freezing") setFact("f-writes", "flushing to disk.img", "base");
+    else if (held) setFact("f-writes", st.guest === "paused" ? "wait, guest paused" : "wait, guest frozen", "wait");
+    else if (st.commit === "1" || st.commit === "ready") setFact("f-writes", "overlay → disk.img", "overlay");
+    else if (st.writes === "overlay") setFact("f-writes", "ovl-rootdisk.qcow2", "overlay");
+    else setFact("f-writes", "disk.img", "base");
+    setFact("f-vms", s.vms === "none" ? "not created" : s.vms, s.vms);
+
+    [...stepsOl.children].forEach((li, i) => {
+      const b = li.firstElementChild;
+      if (i === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", i < step);
+    });
+    [...tlGuest.children, ...tlCsi.children].forEach((el, i) => el.classList.toggle("active", i % flow.steps.length === step));
+
+    const last = step === flow.steps.length - 1;
+    nextBtn.textContent = last ? { direct: "External flow →", external: "Crash recovery →", recovery: "Side by side →" }[view] : "Next →";
+    prevBtn.textContent = step > 0 ? "← Back" : { direct: "← Background", external: "← Direct flow", recovery: "← External flow" }[view];
+    renderDrawer();
+  }
+
+  function go(v, i = 0) { view = v; step = i; render(); }
+
+  const apiBox = $("ph-api");
+  apiBox.addEventListener("toggle", () => { apiOpen = apiBox.open; });
+
+  function renderAPI(lines) {
+    apiBox.open = apiOpen;
+    const changes = lines.filter((l) => !l[4]).length;
+    text("api-count", changes ? `${changes} change${changes > 1 ? "s" : ""}` : "no change");
+    const ul = $("api-lines");
+    ul.replaceChildren();
+    if (!lines.length) {
+      const li = document.createElement("li");
+      li.innerHTML = '<span class="none">Nothing changes at this step.</span>';
+      ul.append(li);
+      return;
+    }
+    lines.forEach(([obj, name, value, anchor, dim]) => {
+      const li = document.createElement("li");
+      if (dim) li.classList.add("dim");
+      const tag = document.createElement("span");
+      tag.className = "obj " + obj.toLowerCase();
+      tag.textContent = obj;
+      const n = document.createElement(anchor ? "button" : "span");
+      n.className = "name";
+      n.textContent = name;
+      if (anchor) {
+        n.type = "button";
+        n.title = "Show on the API surface view";
+        n.addEventListener("click", () => showOnAPI(anchor));
+      }
+      const v = document.createElement("span");
+      v.className = "val";
+      v.textContent = value;
+      li.append(tag, n, v);
+      ul.append(li);
+    });
+  }
+
+  function showOnAPI(anchor) {
+    go("api");
+    const el = $(anchor);
+    el.scrollIntoView({ block: "center" });
+    el.classList.remove("flash");
+    void el.offsetWidth;
+    el.classList.add("flash");
+  }
+
+  function next() {
+    if (view === "background") return go("direct");
+    if (view === "compare") return go("api");
+    if (view === "api") return;
+    if (step < FLOWS[view].steps.length - 1) step++;
+    else return go({ direct: "external", external: "recovery", recovery: "compare" }[view]);
+    render();
+  }
+
+  function prev() {
+    if (view === "background") return;
+    if (view === "compare") return go("recovery", FLOWS.recovery.steps.length - 1);
+    if (view === "api") return go("compare");
+    if (step > 0) step--;
+    else if (view === "external") return go("direct", FLOWS.direct.steps.length - 1);
+    else if (view === "recovery") return go("external", FLOWS.external.steps.length - 1);
+    else return go("background");
+    render();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenEnabled) return;
+    const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  // The objects at each step: a bottom drawer (Y) with YAML excerpts of the objects, the changes
+  // of the current step marked. Lists print one item per bracket key; LISTS names the item's key field.
+  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", finalizers: null, indications: null, accessModes: null };
+  const RANK = ["metadata", "spec", "status"];
+  const MARK = { add: "+", chg: "~", del: "−", rd: "·", gap: "", "": "" };
+  const drawer = $("drawer"), drawerBody = $("dr-body"), yamlBtn = $("yaml-btn");
+  let yamlOpen = false, yamlMode = "changes";
+
+  function parsePath(path) {
+    const segs = [];
+    let cur = "";
+    for (let i = 0; i < path.length; i++) {
+      const ch = path[i];
+      if (ch === ".") { if (cur) segs.push(cur); cur = ""; }
+      else if (ch === "[") { if (cur) segs.push(cur); cur = ""; const end = path.indexOf("]", i); segs.push("[" + path.slice(i + 1, end)); i = end; }
+      else cur += ch;
+    }
+    if (cur) segs.push(cur);
+    return segs;
+  }
+
+  const deltas = (obj, n) => [].concat(obj.steps[n] || []);
+
+  function stateAt(obj, upto) {
+    const state = new Map();
+    for (let n = 1; n <= upto; n++) deltas(obj, n).forEach((d) => {
+      (d.del || []).forEach((p) => state.delete(p));
+      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by }));
+    });
+    return state;
+  }
+
+  // The lines of one object at step n, each with its change class and who made the change
+  function objectView(obj, n) {
+    if (obj.gone && n > obj.gone) return null;
+    const now = obj.gone === n ? new Map() : stateAt(obj, n);
+    const before = n === 1 ? now : stateAt(obj, n - 1);
+    if (!now.size && !before.size) return null;
+    const reads = {}, removedBy = {};
+    deltas(obj, n).forEach((d) => { Object.assign(reads, d.read || {}); (d.del || []).forEach((p) => { removedBy[p] = d.by; }); });
+
+    const root = { seg: "", children: new Map(), path: null };
+    [...before.keys(), ...now.keys()].forEach((path) => {
+      let node = root;
+      parsePath(path).forEach((seg) => {
+        if (!node.children.has(seg)) node.children.set(seg, { seg, children: new Map(), path: null });
+        node = node.children.get(seg);
+      });
+      node.path = path;
+    });
+
+    const leafClass = (path) => {
+      const was = before.get(path), is = now.get(path);
+      if (!was) return "add";
+      if (!is) return "del";
+      if (was.value !== is.value) return "chg";
+      return reads[path] ? "rd" : "";
+    };
+    const classOf = (node) => {
+      if (!node.children.size) return leafClass(node.path);
+      const set = new Set([...node.children.values()].map(classOf));
+      return set.size === 1 ? [...set][0] : "";
+    };
+    const hot = (node) => node.children.size ? [...node.children.values()].some(hot) : leafClass(node.path) !== "";
+    const firstLeaf = (node) => node.children.size ? firstLeaf(node.children.values().next().value) : node;
+    const tagOf = (node, cls) => {
+      const path = firstLeaf(node).path;
+      if (cls === "add" || cls === "chg") return now.get(path).by;
+      if (cls === "del") return obj.gone === n ? obj.goneBy || "virt-controller" : removedBy[path] || before.get(path).by;
+      if (cls === "rd") return "read · " + reads[path];
+      return "";
+    };
+
+    const lines = [];
+    const counts = { add: 0, chg: 0, del: 0, rd: 0 };
+    const full = yamlMode === "all";
+    const walk = (node, depth, keyField, parentTag) => {
+      const kids = [...node.children.values()];
+      if (node === root) kids.sort((a, b) => (RANK.indexOf(a.seg) + 1 || 9) - (RANK.indexOf(b.seg) + 1 || 9));
+      let gap = false;
+      kids.forEach((kid) => {
+        const cls = classOf(kid);
+        if (!full && !cls && !hot(kid)) {
+          if (!gap) lines.push({ head: " ".repeat(depth * 2) + "…", value: "", cls: "gap", tag: "" });
+          gap = true;
+          return;
+        }
+        gap = false;
+        const tag = tagOf(kid, cls);
+        const shown = cls && tag !== parentTag ? tag : "";
+        const key = kid.seg.startsWith("[") ? kid.seg.slice(1) : kid.seg;
+        const indent = " ".repeat(depth * 2);
+        const leaf = !kid.children.size;
+        if (leaf) counts[cls] = (counts[cls] || 0) + (cls ? 1 : 0);
+        if (keyField !== undefined) {                       // kid is an item of a list
+          if (keyField === null) { lines.push({ head: `${indent}- `, value: key, cls, tag: shown }); return; }
+          lines.push({ head: `${indent}- ${keyField}: `, value: key, cls, tag: shown });
+          walk(kid, depth + 1, undefined, cls ? tag : parentTag);
+          return;
+        }
+        if (leaf) {
+          const is = now.get(kid.path), was = before.get(kid.path);
+          lines.push({ head: `${indent}${key}: `, value: (is || was).value, old: cls === "chg" ? was.value : "", cls, tag: shown });
+          return;
+        }
+        lines.push({ head: `${indent}${key}:`, value: "", cls, tag: shown });
+        walk(kid, depth + 1, kid.seg in LISTS ? LISTS[kid.seg] : undefined, cls ? tag : parentTag);
+      });
+    };
+    walk(root, 0, undefined, "");
+    const changed = counts.add + counts.chg + counts.del > 0;
+    return { lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+  }
+
+  const yamlLine = (text) => escapeHTML(text).replace(/^(\s*(?:- )?)([^:]+:)(?=\s|$)/, '$1<span class="k">$2</span>');
+
+  function objectCard(obj, v) {
+    const card = document.createElement("section");
+    card.className = "obj-card" + (v.hot ? " touched" : "");
+    const head = document.createElement("header");
+    head.className = "obj-head";
+    head.innerHTML = `<span class="obj-kind">${escapeHTML(obj.kind)}</span><span class="obj-name">${escapeHTML(obj.name)}</span>`
+      + (obj.note ? `<span class="obj-note">${escapeHTML(obj.note)}</span>` : "");
+    const badge = v.deleted ? ["del", "deleted"] : v.created ? ["add", "created"] : v.changed ? ["chg", "changed"] : v.hot ? ["rd", "read"] : null;
+    if (badge) {
+      const b = document.createElement("span");
+      b.className = "obj-badge " + badge[0];
+      b.textContent = badge[1];
+      head.append(b);
+    }
+    if (obj.card) {
+      const g = document.createElement("button");
+      g.type = "button";
+      g.className = "go";
+      g.textContent = "API surface →";
+      g.addEventListener("click", () => showOnAPI(obj.card));
+      head.append(g);
+    }
+    const api = document.createElement("span");
+    api.className = "obj-api";
+    api.textContent = obj.api;
+    head.append(api);
+    const pre = document.createElement("pre");
+    pre.className = "yaml";
+    v.lines.forEach((l) => {
+      const div = document.createElement("div");
+      div.className = "ln " + l.cls;
+      div.innerHTML = `<i>${MARK[l.cls] || ""}</i><span class="t">${yamlLine(l.head)}${l.old ? `<s>${escapeHTML(l.old)}</s> ` : ""}${escapeHTML(l.value)}</span>` + (l.tag ? `<em class="by">${escapeHTML(l.tag)}</em>` : "");
+      pre.append(div);
+    });
+    card.append(head, pre);
+    return card;
+  }
+
+  function renderDrawer() {
+    const walk = view in FLOWS;
+    const open = yamlOpen && walk;
+    drawer.hidden = !open;
+    document.body.classList.toggle("drawer-open", open);
+    yamlBtn.disabled = !walk;
+    yamlBtn.setAttribute("aria-pressed", String(open));
+    document.querySelectorAll(".drawer-modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === yamlMode)));
+    if (!open) return;
+    const flow = FLOWS[view], n = step + 1;
+    $("dr-step").textContent = `${flow.label}, step ${n} of ${flow.steps.length}: ${flow.steps[step].title}`;
+    drawerBody.replaceChildren();
+    const unchanged = [];
+    let shown = 0;
+    (YAML[view] || []).forEach((obj) => {
+      const v = objectView(obj, n);
+      if (!v) return;
+      if (yamlMode === "changes" && !v.hot) { unchanged.push(`${obj.kind} ${obj.name}`); return; }
+      shown++;
+      drawerBody.append(objectCard(obj, v));
+    });
+    if (!shown) {
+      const p = document.createElement("p");
+      p.className = "drawer-none";
+      p.textContent = n === 1 ? "The starting point. Step forward to see what changes." : "Nothing changes in these objects at this step.";
+      drawerBody.append(p);
+    }
+    if (unchanged.length) {
+      const p = document.createElement("p");
+      p.className = "drawer-unchanged";
+      p.textContent = (n === 1 ? "Present: " : "Unchanged: ") + unchanged.join(" · ");
+      drawerBody.append(p);
+    }
+    // a tag that does not fit beside its line goes under it
+    drawerBody.querySelectorAll(".ln em.by").forEach((tag) => {
+      const ln = tag.parentElement;
+      if (ln.querySelector(".t").scrollWidth + tag.offsetWidth + 40 > ln.clientWidth) ln.classList.add("stack");
+    });
+  }
+
+  function toggleYAML() {
+    if (!yamlOpen && !(view in FLOWS)) return;
+    yamlOpen = !yamlOpen;
+    renderDrawer();
+  }
+
+  function setYamlMode(mode) {
+    yamlMode = mode;
+    renderDrawer();
+  }
+
+  const grip = $("dr-grip"), rootStyle = document.documentElement.style;
+  function setDrawerHeight(px) {
+    const h = Math.round(Math.min(Math.max(px, 160), window.innerHeight * 0.9));
+    rootStyle.setProperty("--drawer-h", h + "px");
+    try { localStorage.setItem("drawer-h", String(h)); } catch (e) { /* a per-browser convenience */ }
+  }
+  function resetDrawerHeight() {
+    rootStyle.removeProperty("--drawer-h");
+    try { localStorage.removeItem("drawer-h"); } catch (e) { /* a per-browser convenience */ }
+  }
+  try { const saved = Number(localStorage.getItem("drawer-h")); if (saved) rootStyle.setProperty("--drawer-h", saved + "px"); } catch (e) { /* a per-browser convenience */ }
+  grip.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    grip.setPointerCapture(e.pointerId);
+    document.body.classList.add("drawer-resizing");
+    const move = (ev) => setDrawerHeight(window.innerHeight - ev.clientY);
+    const up = () => { grip.removeEventListener("pointermove", move); document.body.classList.remove("drawer-resizing"); };
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", up, { once: true });
+    grip.addEventListener("pointercancel", up, { once: true });
+  });
+  grip.addEventListener("dblclick", () => {
+    if (drawer.getBoundingClientRect().height > window.innerHeight * 0.6) resetDrawerHeight(); else setDrawerHeight(window.innerHeight * 0.8);
+  });
+
+  // the tags are measured, so measure again once the web fonts are in and when the width changes
+  if (document.fonts) document.fonts.ready.then(() => { if (yamlOpen) renderDrawer(); });
+  window.addEventListener("resize", () => { if (yamlOpen && view in FLOWS) renderDrawer(); });
+
+  yamlBtn.addEventListener("click", toggleYAML);
+  $("dr-close").addEventListener("click", toggleYAML);
+  document.querySelectorAll(".drawer-modes button").forEach((b) => b.addEventListener("click", () => setYamlMode(b.dataset.mode)));
+  document.querySelectorAll("[data-jump]").forEach((b) => b.addEventListener("click", () => $(b.dataset.jump).scrollIntoView({ block: "start", behavior: "smooth" })));
+
+  tabs.forEach((t) => t.addEventListener("click", () => go(t.dataset.view)));
+  nextBtn.addEventListener("click", next);
+  prevBtn.addEventListener("click", prev);
+  $("back-external").addEventListener("click", () => go("external", FLOWS.external.steps.length - 1));
+  $("back-direct").addEventListener("click", () => go("direct"));
+  $("to-direct").addEventListener("click", () => go("direct"));
+  $("back-compare").addEventListener("click", () => go("compare"));
+  $("back-external-2").addEventListener("click", () => go("external"));
+  document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => {
+    const [v, n] = b.dataset.go.split("/");
+    go(v, Number(n) - 1);
+  }));
+
+  // Dark mode: off by default, the viewer's choice kept per browser. It never follows the system or the host theme.
+  const darkBtn = $("dark-btn");
+  let dark = false;
+  try { const saved = localStorage.getItem("dark"); if (saved !== null) dark = saved === "1"; } catch (e) { /* a per-browser convenience */ }
+  function setDark(on) {
+    dark = on;
+    document.documentElement.toggleAttribute("data-dark", on);
+    darkBtn.setAttribute("aria-checked", String(on));
+    try { localStorage.setItem("dark", on ? "1" : "0"); } catch (e) { /* a per-browser convenience */ }
+  }
+  setDark(dark);
+  darkBtn.addEventListener("click", () => setDark(!dark));
+
+  if (document.fullscreenEnabled) {
+    presentBtn.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      presentBtn.textContent = document.fullscreenElement ? "Exit full screen" : "Present";
+    });
+  } else {
+    presentBtn.hidden = true;
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onButton = e.target instanceof HTMLButtonElement;
+    if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && !onButton)) { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+    else if (e.key === "y" || e.key === "Y") toggleYAML();
+    else if (e.shiftKey && (e.key === "ArrowUp" || e.key === "ArrowDown") && yamlOpen) { e.preventDefault(); setDrawerHeight(drawer.getBoundingClientRect().height + (e.key === "ArrowUp" ? 80 : -80)); }
+    else if (e.key === "Escape" && yamlOpen) toggleYAML();
+    else if ((e.key === "m" || e.key === "M") && yamlOpen) setYamlMode(yamlMode === "changes" ? "all" : "changes");
+    else if (e.key === "f" || e.key === "F") toggleFullscreen();
+    else if (e.key === "d" || e.key === "D") setDark(!dark);
+    else if (e.key.length === 1 && e.key >= "1" && e.key <= String(VIEWS.length)) go(VIEWS[Number(e.key) - 1]);
+  });
+
+  const copyBtn = $("copy-yaml");
+  copyBtn.addEventListener("click", () => {
+    const pre = $("yaml");
+    const reset = () => setTimeout(() => { copyBtn.textContent = "Copy"; }, 1800);
+    const selectInstead = () => {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      copyBtn.textContent = "Selected, press Ctrl+C";
+      reset();
+    };
+    try {
+      navigator.clipboard.writeText(pre.textContent).then(() => { copyBtn.textContent = "Copied"; reset(); }, selectInstead);
+    } catch (e) {
+      selectInstead();
+    }
+  });
+
+  const [fromHash, fromStep] = (location.hash || "").slice(1).split("/");
+  if (VIEWS.includes(fromHash)) {
+    view = fromHash;
+    if (view in FLOWS) step = Math.min(Math.max((Number(fromStep) || 1) - 1, 0), FLOWS[view].steps.length - 1);
+  }
+  render();
+  if (view === "api" && fromStep === "recovery") $("api-recovery").scrollIntoView();
+})();
+</script>
+

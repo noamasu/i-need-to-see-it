@@ -1,0 +1,1070 @@
+<title>KubeVirt Snapshot Flows</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@400;500;700&family=Red+Hat+Mono:wght@400;500;600;700&family=Red+Hat+Text:wght@400;500;700&display=swap">
+<style>
+/* Layout: a schematic sheet (the stage) beside a narration column, with the step rail and a guest timeline under it; a side-by-side view carries the comparison. */
+:root {
+  --paper: #FFFFFF; --sheet: #FAFAFA; --card: #FFFFFF; --pod: #F2F2F2; --band: #F2F2F2;
+  --ink: #151515; --ink-2: #4D4D4D; --muted: #707070; --line: #E0E0E0; --line-2: #A3A3A3; --grid: #EDEDED;
+  --brand: #EE0000; --brand-ink: #EE0000; --on-brand: #FFFFFF;
+  --strong: #1B0D33; --on-strong: #FFFFFF;
+  --link: #0066CC; --tip: #147878; --tip-wash: #DAF2F2;
+  --accent: #147878; --accent-ink: #004D4D; --accent-wash: #DAF2F2;
+  --write: #EE0000; --write-ink: #A60000; --write-wash: #FCE3E3;
+  --ice: #0066CC; --ice-ink: #003366; --ice-wash: #E0F0FF;
+  --csi: #5E40BE; --csi-ink: #3D2785; --csi-wash: #ECE6FF;
+  --held: #707070; --held-ink: #383838; --pause-wash: #F2F2F2;
+  --ok: #3D7317; --ok-ink: #204D00; --ok-wash: #E9F7DF;
+  --bug: #B1380B; --bug-ink: #731F00; --bug-wash: #FFE3D9;
+  --font-display: "Red Hat Display", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "Red Hat Text", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "Red Hat Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+/* the dark set of the same style: off by default, switched by the Dark switch (key D), kept per browser. It never follows the system or the host theme. */
+:root[data-dark] {
+  --paper: #151515; --sheet: #1A1A1A; --card: #1F1F1F; --pod: #292929; --band: #232323;
+  --ink: #FFFFFF; --ink-2: #C7C7C7; --muted: #A3A3A3; --line: #383838; --line-2: #707070; --grid: #242424;
+  --brand: #EE0000; --brand-ink: #F56E6E; --on-brand: #FFFFFF;
+  --strong: #B6A6E9; --on-strong: #1B0D33;
+  --link: #92C5F9; --tip: #9AD8D8; --tip-wash: #0D3B3B;
+  --accent: #63BDBD; --accent-ink: #B9E5E5; --accent-wash: #0D3B3B;
+  --write: #F56E6E; --write-ink: #FBBEBE; --write-wash: #4A0A0A;
+  --ice: #4394E5; --ice-ink: #B9DAFC; --ice-wash: #032142;
+  --csi: #876FD4; --csi-ink: #D0C5F4; --csi-wash: #21134D;
+  --held: #A3A3A3; --held-ink: #E0E0E0; --pause-wash: #292929;
+  --ok: #87BB62; --ok-ink: #D1F1BB; --ok-wash: #183301;
+  --bug: #F4784A; --bug-ink: #FBBEA8; --bug-wash: #4D1F00;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 400 15px/1.6 var(--font-body); -webkit-font-smoothing: antialiased; }
+code { font-family: var(--font-mono); font-size: .88em; background: color-mix(in srgb, var(--ink) 7%, transparent); border-radius: 3px; padding: .05em .35em; white-space: nowrap; }
+.page {
+  max-width: 1400px; margin-inline: auto; display: grid; gap: 18px;
+  padding-block: 22px 44px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* header */
+.top { position: relative; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; justify-content: space-between; }
+.title-block { min-width: 0; max-width: 70ch; }
+.eyebrow::before { content: ""; position: absolute; left: 0; top: -22px; bottom: 0; width: 1.5px; background: var(--brand); }
+.facts dt { font: 500 13.5px/1.2 var(--font-body); color: var(--ink-2); }
+.eyebrow { position: relative; margin: 0 0 18px; padding-left: 16px; font: 500 13px/1.3 var(--font-body); color: var(--brand-ink); }
+h1 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: clamp(30px, 2vw + 16px, 46px); line-height: 1.08; letter-spacing: -.005em; text-wrap: balance; }
+h1 .flow-word { transition: color .2s; }
+h1 .flow-word.on { color: var(--brand-ink); font-weight: 500; }
+.lede { margin: 12px 0 0; color: var(--ink-2); font-size: 16px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; }
+.tabs { display: inline-flex; flex-wrap: wrap; gap: 0 2px; border-bottom: 1px solid var(--line); }
+.tab { appearance: none; border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: transparent; color: var(--ink-2); font: 500 15px/1 var(--font-body); padding: 12px 14px 10px; cursor: pointer; display: inline-flex; align-items: baseline; gap: 7px; }
+.tab small { font: 500 11px/1 var(--font-mono); color: var(--muted); }
+.tab:hover { color: var(--ink); border-bottom-color: var(--line-2); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--brand); }
+.tab[aria-selected="true"] small { color: var(--brand-ink); }
+button:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+.ghost-btn { appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 14px/1 var(--font-body); padding: 11px 16px; border-radius: 3px; cursor: pointer; }
+.ghost-btn:hover { background: var(--ink); color: var(--paper); }
+/* the Dark switch: a round on/off switch at the top right of the page, above Present; off by default. Its right offset keeps it on screen when the page is wider than the window */
+.dark-switch { position: absolute; top: -8px; right: max(0px, 100% - 100vw + 32px); display: inline-flex; align-items: center; gap: 8px; appearance: none; border: 0; background: transparent; color: var(--ink-2); font: 500 13px/1 var(--font-body); padding: 6px 0; cursor: pointer; }
+.dark-switch .track { position: relative; width: 38px; height: 20px; border-radius: 999px; background: var(--muted); transition: background .2s; }
+.dark-switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--paper); transition: transform .2s; }
+.dark-switch[aria-checked="true"] .track { background: var(--ink); }
+.dark-switch[aria-checked="true"] .track::after { transform: translateX(18px); }
+@media (max-width: 920px) { .eyebrow { padding-right: 92px; } }
+
+/* walkthrough */
+.walk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(270px, 350px); grid-template-areas: "stage narr" "rail rail" "tl tl"; gap: 16px 22px; align-items: stretch; }
+.stage { grid-area: stage; min-width: 0; overflow-x: auto; background: var(--sheet); border: 1px solid var(--line); display: grid; place-items: center; }
+.scene { display: block; width: 100%; height: auto; min-width: 680px; max-height: max(420px, calc(100vh - 300px)); }
+.narr { grid-area: narr; min-width: 0; display: flex; flex-direction: column; gap: 14px; padding: 22px 24px; background: var(--card); border: 1px solid var(--line); }
+.meta { margin: 0; display: flex; flex-wrap: wrap; gap: 8px 10px; align-items: center; font: 500 13px/1.2 var(--font-body); color: var(--brand-ink); }
+.flow-chip, .tag-chip { padding: 3px 10px; border-radius: 999px; font: 500 12px/1.3 var(--font-mono); background: var(--tw, var(--pod)); color: var(--tt, var(--ink-2)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); }
+.flow-chip.external { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.narr h2 { margin: 0; font: 400 27px/1.15 var(--font-display); text-wrap: balance; }
+.narr p { margin: 0; }
+.body { color: var(--ink); font-size: 16px; }
+.note { font-size: 14px; color: var(--ink); background: var(--tip-wash); padding: 12px 14px; }
+.note b { display: block; margin-bottom: 3px; font: 700 13px/1.2 var(--font-body); color: var(--tip); }
+.facts { margin: auto 0 0; display: grid; gap: 9px; border-top: 1px dotted var(--line-2); padding-top: 14px; }
+.facts div { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.facts dd { margin: 0; font: 500 12.5px/1.2 var(--font-mono); padding: 4px 10px; border-radius: 999px; background: var(--tw, var(--pod)); color: var(--tt, var(--ink)); border: 1px solid color-mix(in srgb, var(--tc, var(--line-2)) 35%, transparent); text-align: right; }
+.facts dd[data-tone="running"], .facts dd[data-tone="Succeeded"] { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.facts dd[data-tone="frozen"], .facts dd[data-tone="freezing"] { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); }
+.facts dd[data-tone="paused"], .facts dd[data-tone="wait"] { background: var(--pause-wash); color: var(--ink-2); }
+.facts dd[data-tone="overlay"] { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.facts dd[data-tone="base"] { --tw: var(--write-wash); --tc: var(--write); --tt: var(--write-ink); }
+
+.rail { grid-area: rail; min-width: 0; display: flex; gap: 10px; align-items: center; }
+.rail ol { list-style: none; margin: 0; padding: 2px; display: flex; gap: 6px; flex: 1; min-width: 0; overflow-x: auto; }
+.rail li { flex: none; }
+.step-btn { width: 100%; display: flex; gap: 8px; align-items: center; appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--ink-2); border-radius: 3px; padding: 7px 10px; cursor: pointer; text-align: left; font: 500 13.5px/1.2 var(--font-body); }
+.step-btn:hover { border-color: var(--line-2); }
+.step-btn .n { flex: none; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font: 600 11.5px/1 var(--font-mono); background: var(--pod); color: var(--ink-2); }
+.step-btn.done .n { background: var(--line); }
+.step-btn[aria-current="step"] { background: var(--strong); border-color: var(--strong); color: var(--on-strong); }
+.step-btn[aria-current="step"] .n { background: var(--on-strong); color: var(--strong); }
+.step-btn .lbl { display: none; }
+.step-btn[aria-current="step"] .lbl { display: inline; }
+.nav-btn { flex: none; appearance: none; border: 1px solid var(--ink); background: transparent; color: var(--ink); font: 500 15px/1 var(--font-body); padding: 11px 16px; border-radius: 3px; cursor: pointer; white-space: nowrap; }
+.nav-btn.primary { background: var(--brand); border-color: var(--brand); color: var(--on-brand); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+
+.tl { grid-area: tl; display: grid; gap: 6px; }
+.tl-row { display: grid; grid-template-columns: 118px minmax(0, 1fr); gap: 10px; align-items: center; }
+.tl-label { text-align: right; font: 500 12.5px/1.2 var(--font-body); color: var(--ink-2); }
+.tl-track { display: flex; gap: 2px; height: 26px; }
+.tl-seg { min-width: 16px; display: grid; place-items: center; font: 500 11.5px/1 var(--font-mono); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.tl-seg.run { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.tl-seg.frozen { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.tl-seg.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 5px, transparent 5px 10px); color: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.tl-seg.paused { background: var(--pause-wash); color: var(--ink-2); box-shadow: inset 0 0 0 1.5px var(--held); }
+.tl-seg.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
+.tl-seg.cutting { background: repeating-linear-gradient(135deg, var(--csi-wash) 0 6px, transparent 6px 12px); box-shadow: inset 0 0 0 1.5px var(--csi); color: var(--csi-ink); }
+.tl-seg.ready { --tw: var(--csi-wash); --tc: var(--csi); --tt: var(--csi-ink); }
+.tl-seg.active { outline: 2px solid var(--ink); outline-offset: 2px; }
+.tl-note { margin: 4px 0 0 128px; font-size: 13px; color: var(--muted); }
+
+/* scene */
+.scene text { font-family: var(--font-body); fill: var(--ink); }
+.grid-line { fill: none; stroke: var(--grid); stroke-width: 1; }
+.scene .card { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: fill .35s, stroke .35s; }
+.scene .kicker, .scene .k { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .title { font: 500 17px var(--font-display); fill: var(--ink); }
+.scene .line { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+.scene .mono-line { font: 400 12px var(--font-mono); fill: var(--ink-2); }
+.scene .hair { stroke: var(--line-2); stroke-width: 1; stroke-dasharray: 1 3; }
+.scene .v { font: 600 12.5px var(--font-mono); fill: var(--ink); }
+.scene[data-vms="Succeeded"] .v { fill: var(--ok-ink); }
+.scene .pod { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.5; }
+.scene .pod-label { font: 500 12.5px var(--font-mono); fill: var(--ink-2); }
+.scene .vm { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; }
+.scene .vm-title { font: 700 16px var(--font-display); fill: var(--ink); }
+.scene .vm-sub { font: 500 11.5px var(--font-mono); fill: var(--muted); }
+.scene .band { fill: var(--band); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .band-label { font: 500 11px var(--font-mono); letter-spacing: .1em; fill: var(--muted); }
+.scene .chip { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .35s; }
+.scene .chip-text { font: 500 14px var(--font-mono); fill: var(--ink); }
+.scene .chip-tag { font: 500 10.5px var(--font-mono); letter-spacing: .08em; fill: var(--muted); }
+.scene .tag { font: 400 12.5px var(--font-body); fill: var(--ink-2); }
+
+.scene .guest { fill: var(--sheet); stroke: var(--line-2); stroke-width: 1.2; transition: fill .4s, stroke .4s; }
+.scene[data-guest="frozen"] .guest { fill: var(--ice-wash); stroke: var(--ice); stroke-width: 1.8; }
+.scene[data-guest="paused"] .guest { fill: var(--pause-wash); stroke: var(--held); stroke-width: 1.8; }
+.scene[data-guest="freezing"] .guest { stroke: var(--ice); stroke-width: 1.8; stroke-dasharray: 6 4; }
+.scene .guest-title { font: 500 13.5px var(--font-body); }
+.scene .badge { fill: var(--ok-wash); stroke: var(--ok); stroke-width: 1.2; transition: fill .3s, stroke .3s; }
+.scene .badge-text { font: 600 10.5px var(--font-mono); letter-spacing: .07em; fill: var(--ok-ink); }
+.scene[data-guest="frozen"] .badge { fill: var(--card); stroke: var(--ice); }
+.scene[data-guest="frozen"] .badge-text { fill: var(--ice-ink); }
+.scene[data-guest="paused"] .badge { fill: var(--card); stroke: var(--held); }
+.scene[data-guest="paused"] .badge-text { fill: var(--held-ink); }
+.scene[data-guest="freezing"] .badge { fill: var(--card); stroke: var(--ice); stroke-dasharray: 3 3; }
+.scene[data-guest="freezing"] .badge-text { fill: var(--ice-ink); }
+.scene .ic { opacity: 0; transition: opacity .3s; }
+.scene[data-guest="running"] .ic-run, .scene:is([data-guest="frozen"], [data-guest="freezing"]) .ic-ice, .scene[data-guest="paused"] .ic-pause { opacity: 1; }
+.scene[data-guest="freezing"] .ic-ice { transform-box: fill-box; transform-origin: center; animation: spin 3s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.scene .ic-run { fill: var(--ok); }
+.scene .ic-ice { fill: none; stroke: var(--ice); stroke-width: 1.6; stroke-linecap: round; }
+.scene .ic-pause { fill: var(--held-ink); }
+.scene .app { transition: opacity .3s; }
+.scene[data-guest="frozen"] .app, .scene[data-guest="paused"] .app { opacity: .45; }
+.scene[data-guest="freezing"] .app { opacity: .7; }
+.scene .doc { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.4; }
+.scene .doc-lines { fill: none; stroke: var(--ink-2); stroke-width: 1.4; stroke-linecap: round; }
+.scene .app-sub { font: 400 11.5px var(--font-body); fill: var(--muted); }
+.scene .agent-box { fill: var(--card); stroke: var(--line-2); stroke-width: 1.2; transition: stroke .3s; }
+.scene .agent-text { font: 500 12px var(--font-body); fill: var(--ink-2); }
+.scene[data-agent="1"] .agent-box { stroke: var(--ice); stroke-width: 2; }
+.scene[data-agent="1"] .agent-text { fill: var(--ice-ink); font-weight: 700; }
+.scene .vda { fill: var(--pod); stroke: var(--line-2); stroke-width: 1.2; }
+.scene .vda-label { font: 600 12.5px var(--font-mono); }
+.scene .vda-chain { font: 500 12px var(--font-mono); fill: var(--ink-2); }
+.scene[data-writes="overlay"] .vda-chain { fill: var(--accent-ink); font-weight: 600; }
+.scene .vda-verb { fill: var(--muted); font-weight: 400; }
+
+.scene[data-writes="base"][data-held="0"] .base-chip { stroke: var(--write); stroke-width: 1.8; }
+.scene:is([data-commit="1"], [data-commit="sync"]) .base-chip { stroke: var(--accent); stroke-width: 1.8; }
+.scene .lock { opacity: 0; transition: opacity .3s; }
+.scene[data-lock="1"] .lock { opacity: 1; }
+.scene .lock-body { fill: var(--muted); }
+.scene .lock-shackle { fill: none; stroke: var(--muted); stroke-width: 1.8; }
+
+.scene .scratch-g, .scene .vs-g { transition: opacity .35s; }
+.scene .scratch-card { stroke: var(--accent); stroke-width: 1.5; }
+.scene:is([data-scratch="ghost"], [data-scratch="removed"]) .scratch-g { opacity: .6; }
+.scene:is([data-scratch="ghost"], [data-scratch="removed"]) .scratch-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene .ovl, .scene .ovl-empty { opacity: 0; transition: opacity .35s; }
+.scene[data-scratch="empty"] .ovl-empty, .scene[data-scratch="overlay"] .ovl { opacity: 1; }
+.scene[data-scratch="deleted"] .ovl { opacity: .5; }
+.scene .ovl-chip { fill: var(--accent-wash); stroke: var(--accent); stroke-width: 1.4; }
+.scene .ovl .chip-text { fill: var(--accent-ink); font-size: 13.5px; }
+.scene[data-writes="overlay"][data-held="0"] .ovl-chip { stroke-width: 2.2; }
+.scene .strike { stroke: var(--ink-2); stroke-width: 1.8; opacity: 0; }
+.scene[data-scratch="deleted"] .strike { opacity: 1; }
+.scene .empty-chip { fill: none; stroke: var(--accent); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.scene .empty-text { font: 500 12px var(--font-mono); fill: var(--muted); }
+.scene .mount-g { transition: opacity .35s; }
+.scene .mount-card { fill: var(--card); stroke: var(--accent); stroke-width: 1.5; }
+.scene .mount-name { font: 500 12.5px var(--font-mono); fill: var(--accent-ink); }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-g { opacity: .6; }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene:is([data-plug="none"], [data-plug="unplugging"]) .mount-name { fill: var(--muted); }
+.scene .plug-line { fill: none; stroke: var(--accent); stroke-width: 2.6; stroke-linecap: round; opacity: 0; transition: opacity .35s; }
+.scene:is([data-plug="plugging"], [data-plug="1"]) .plug-line { opacity: 1; }
+.scene[data-plug="plugging"] .plug-line { stroke-dasharray: 4 4; animation: march .6s linear infinite; }
+.scene[data-plug="unplugging"] .plug-line { opacity: .6; stroke: var(--line-2); stroke-dasharray: 4 4; }
+.scene .plug-pill, .scene .ready-pill { opacity: 0; transition: opacity .3s; }
+.scene:is([data-plug="plugging"], [data-plug="unplugging"]) .plug-pill, .scene[data-commit="sync"] .ready-pill { opacity: 1; }
+
+.scene .vs-card { stroke: var(--csi); stroke-width: 1.5; }
+.scene[data-csi="none"] .vs-g { opacity: .6; }
+.scene[data-csi="none"] .vs-card { fill: none; stroke: var(--line-2); stroke-dasharray: 6 5; }
+.scene .vf { fill: none; stroke: var(--line-2); stroke-width: 1.8; stroke-linecap: round; }
+.scene:not([data-csi="none"]) .vf { stroke: var(--csi); }
+.scene .vs-copy, .scene .vs-check { opacity: 0; transition: opacity .3s; }
+.scene[data-csi="cutting"] .vs-copy { opacity: 1; animation: develop 1.6s ease-in-out infinite; }
+.scene[data-csi="ready"] .vs-copy, .scene[data-csi="ready"] .vs-check { opacity: 1; }
+.scene .vs-chip { fill: var(--csi-wash); stroke: var(--csi); stroke-width: 1.2; }
+.scene .vs-chip-text { font: 600 12px var(--font-mono); fill: var(--csi-ink); }
+.scene .vs-chip-sub { font: 500 10.5px var(--font-body); fill: var(--csi-ink); }
+.scene .vs-check circle { fill: var(--csi); }
+.scene .vs-check path { fill: none; stroke: var(--card); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes develop { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
+
+.mk-write { fill: var(--write); }
+.mk-held { fill: var(--held); }
+.mk-csi { fill: var(--csi); }
+.mk-commit { fill: var(--accent); }
+.mk-ctrl { fill: var(--line-2); }
+.mk-ctrl-on { fill: var(--ink); }
+
+.scene .io-g { transition: opacity .35s ease; }
+.scene .io-track { fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.scene .io-dots { fill: none; stroke-width: 5.5; stroke-linecap: round; stroke-dasharray: .1 11; animation: flow .9s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -11.1; } }
+.scene .write .io-track { stroke: var(--write); marker-end: url(#m-write); }
+.scene .write .io-dots { stroke: var(--write); }
+.scene[data-held="1"] .write .io-track { stroke: var(--held); stroke-dasharray: 6 5; marker-end: url(#m-held); }
+.scene[data-held="1"] .write .io-dots { display: none; }
+.scene .a-csi .io-track { stroke: var(--csi); marker-end: url(#m-csi); }
+.scene .a-csi .io-dots { stroke: var(--csi); }
+.scene .a-commit .io-track { stroke: var(--accent); marker-end: url(#m-commit); }
+.scene .a-commit .io-dots { stroke: var(--accent); }
+.scene .a-backing .io-track { stroke: var(--muted); stroke-width: 1.8; stroke-dasharray: 5 5; }
+.scene .io-label { font: 600 11.5px var(--font-mono); paint-order: stroke; stroke: var(--band); stroke-width: 4px; stroke-linejoin: round; fill: var(--tt, var(--muted)); }
+.scene .w-label { font: 600 12px var(--font-mono); paint-order: stroke; stroke: var(--sheet); stroke-width: 4px; stroke-linejoin: round; fill: var(--write-ink); }
+.scene .w-label.wait { fill: var(--held); }
+.scene[data-held="1"] .w-label.go, .scene[data-held="0"] .w-label.wait { display: none; }
+.scene .w-label.flush, .scene[data-guest="freezing"] .w-label.go { display: none; }
+.scene[data-guest="freezing"] .w-label.flush { display: inline; }
+.scene .a-csi-l { fill: var(--csi-ink); }
+.scene .a-commit-l { fill: var(--accent-ink); }
+.scene .a-backing-l { fill: var(--muted); }
+.scene :is(.w-base, .w-base-l, .w-ovl, .w-ovl-l, .a-csi, .a-csi-l, .a-backing, .a-backing-l, .a-commit, .a-commit-l) { opacity: 0; transition: opacity .35s ease; }
+.scene[data-writes="base"] :is(.w-base, .w-base-l),
+.scene[data-writes="overlay"] :is(.w-ovl, .w-ovl-l),
+.scene[data-csi="cutting"] :is(.a-csi, .a-csi-l),
+.scene[data-backing="1"] :is(.a-backing, .a-backing-l),
+.scene:is([data-commit="1"], [data-commit="sync"]) :is(.a-commit, .a-commit-l) { opacity: 1; }
+.scene[data-commit="sync"] .a-commit .io-dots { display: none; }
+.scene .a-commit .io-dots.nw { stroke: var(--write); stroke-dasharray: .1 22.1; animation: flow2 1.8s linear infinite; }
+@keyframes flow2 { from { stroke-dashoffset: -5.55; } to { stroke-dashoffset: -27.75; } }
+.scene .nw-l { fill: var(--write-ink); font-size: 11px; }
+.scene[data-commit="sync"] .nw-l { opacity: 0; }
+.scene[data-switch="pivot"] .w-ovl, .scene[data-switch="overlay"] .w-base { opacity: .5; }
+.scene[data-switch="pivot"] .w-ovl .io-track, .scene[data-switch="overlay"] .w-base .io-track { stroke: var(--held); stroke-dasharray: 2 6; marker-end: none; }
+.scene[data-switch="pivot"] .w-ovl .io-dots, .scene[data-switch="overlay"] .w-base .io-dots { display: none; }
+.scene .switch-g { opacity: 0; transition: opacity .3s; }
+.scene .switch-line { fill: none; stroke: var(--strong); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 300; stroke-dashoffset: 300; transition: stroke-dashoffset .8s ease .1s; }
+.scene .switch-head { fill: var(--strong); opacity: 0; transition: opacity .2s ease .85s; }
+.scene .switch-dot, .scene .switch-pill { fill: var(--strong); }
+.scene .switch-text { font: 600 12px var(--font-mono); letter-spacing: .12em; fill: var(--on-strong); }
+.scene[data-switch="pivot"] .pivot-g, .scene[data-switch="overlay"] .overlay-g { opacity: 1; }
+.scene[data-switch="pivot"] .pivot-g .switch-line, .scene[data-switch="overlay"] .overlay-g .switch-line { stroke-dashoffset: 0; }
+.scene[data-switch="pivot"] .pivot-g .switch-head, .scene[data-switch="overlay"] .overlay-g .switch-head { opacity: 1; }
+
+.scene .ctrl-path path { fill: none; stroke: var(--line-2); stroke-width: 1.6; stroke-dasharray: 4 4; marker-end: url(#m-ctrl); }
+.scene .ctrl-label { font: 600 11px var(--font-mono); fill: var(--ink); opacity: 0; transition: opacity .3s; }
+.scene[data-ctrl="pod"] .c-pod path, .scene[data-ctrl="csi"] .c-csi path, .scene[data-ctrl="scratch"] .c-scratch path { stroke: var(--ink); stroke-width: 2; marker-end: url(#m-ctrl-on); animation: march .6s linear infinite; }
+.scene[data-ctrl="pod"] .c-pod-l, .scene[data-ctrl="csi"] .c-csi-l, .scene[data-ctrl="scratch"] .c-scratch-l { opacity: 1; }
+.scene .c-scratch { opacity: 0; transition: opacity .3s; }
+.scene[data-ctrl="scratch"] .c-scratch { opacity: 1; }
+@keyframes march { to { stroke-dashoffset: -8; } }
+
+/* side by side */
+.compare { display: grid; gap: 22px; }
+.compare h2 { margin: 0; font: 400 clamp(26px, 1.4vw + 16px, 36px)/1.12 var(--font-display); text-wrap: balance; }
+.compare h3 { margin: 0 0 8px; font: 500 20px/1.2 var(--font-display); }
+.cmp-head p { margin: 8px 0 0; color: var(--ink-2); max-width: 70ch; font-size: 16px; }
+.panel { background: var(--card); border: 1px solid var(--line); }
+.cmp-chart-wrap { overflow-x: auto; padding: 20px 24px 16px; }
+.cmp-chart { min-width: 760px; display: grid; gap: 14px; }
+.cmp-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; align-items: start; }
+.cmp-name { font: 500 17px/1.2 var(--font-display); padding-top: 35px; }
+.cmp-lanes { display: grid; gap: 5px; }
+.cmp-callouts { position: relative; height: 22px; }
+.callout { position: absolute; bottom: 6px; transform: translateX(-50%); font: 500 11.5px/1 var(--font-mono); white-space: nowrap; color: var(--tt, var(--ink-2)); }
+.callout::after { content: ""; position: absolute; left: 50%; top: 100%; width: 1.5px; height: 7px; background: currentColor; }
+.callout.ice { color: var(--ice-ink); }
+.callout.pause { color: var(--ink-2); }
+.cmp-track { position: relative; height: 36px; }
+.cmp-track.thin { height: 18px; }
+.cs { position: absolute; top: 0; bottom: 0; border-right: 2px solid var(--card); display: flex; align-items: center; padding: 0 10px; font: 500 13px/1 var(--font-body); white-space: nowrap; overflow: hidden; background: var(--tw, transparent); color: var(--tt, var(--ink-2)); box-shadow: inset 0 0 0 var(--tb, 0px) var(--to, var(--tc, transparent)); }
+.cmp-track.thin .cs { font: 500 11px/1 var(--font-mono); padding: 0 8px; }
+.cs.run { --tw: var(--ok-wash); --tc: var(--ok); --tt: var(--ok-ink); }
+.cs.frozen { --tw: var(--ice-wash); --tc: var(--ice); --tt: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.cs.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 6px, var(--card) 6px 12px); color: var(--ice-ink); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.cs.paused { background: var(--pause-wash); box-shadow: inset 0 0 0 1.5px var(--held); }
+.cs.commit { --tw: var(--accent-wash); --tc: var(--accent); --tt: var(--accent-ink); }
+.cs.csi { --tw: var(--csi-wash); --tc: var(--csi); --tt: var(--csi-ink); }
+.cs.scratch { background: transparent; color: var(--accent-ink); box-shadow: inset 0 0 0 1.5px var(--accent); }
+.cmp-axis { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 14px; }
+.axis { position: relative; height: 26px; border-top: 1px solid var(--ink); font: 500 11.5px/1 var(--font-mono); color: var(--muted); }
+.axis span { position: absolute; top: 8px; white-space: nowrap; }
+.axis .tick::before { content: ""; position: absolute; left: 0; top: -9px; width: 1px; height: 6px; background: var(--ink); }
+.legend { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px dotted var(--line-2); display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 13.5px; color: var(--ink-2); }
+.legend li { display: flex; align-items: center; gap: 7px; }
+.sw { width: 18px; height: 12px; display: inline-block; background: var(--tw); box-shadow: inset 0 0 0 1px var(--to, var(--tc)); }
+.sw.run { background: var(--ok-wash); box-shadow: inset 0 0 0 1px var(--ok); }
+.sw.frozen { background: var(--ice-wash); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.sw.freezing { background: repeating-linear-gradient(135deg, var(--ice-wash) 0 3px, var(--card) 3px 6px); box-shadow: inset 0 0 0 1.5px var(--ice); }
+.sw.paused { background: var(--pause-wash); box-shadow: inset 0 0 0 1.5px var(--held); }
+.sw.commit { background: var(--accent-wash); box-shadow: inset 0 0 0 1px var(--accent); }
+.sw.csi { background: var(--csi-wash); box-shadow: inset 0 0 0 1px var(--csi); }
+.sw.scratch { box-shadow: inset 0 0 0 1.5px var(--accent); }
+.takeaway { margin: 0; font: 400 clamp(21px, .9vw + 15px, 28px)/1.3 var(--font-display); color: var(--brand-ink); max-width: 60ch; text-wrap: balance; }
+.table-wrap { overflow-x: auto; }
+.cmp-table { width: 100%; min-width: 640px; border-collapse: collapse; font-size: 15px; }
+.cmp-table th, .cmp-table td { text-align: left; vertical-align: top; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.cmp-table tbody tr:last-child > * { border-bottom: 0; }
+.cmp-table tbody tr:nth-child(even) { background: color-mix(in srgb, var(--ink) 3.5%, transparent); }
+.cmp-table thead th { font: 500 14px/1.3 var(--font-body); color: var(--ink); border-bottom: 3px solid var(--ink); }
+.cmp-table thead th.ext { color: var(--accent-ink); }
+.cmp-table tbody th { width: 24%; font-weight: 500; color: var(--ink); }
+.cmp-table td { color: var(--ink-2); }
+.howto { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 22px; align-items: start; }
+.howto-text p { margin: 0 0 10px; color: var(--ink-2); max-width: 60ch; }
+.code-card { min-width: 0; overflow: hidden; }
+.code-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 8px 10px 8px 16px; border-bottom: 1px solid var(--line); font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.copy-btn { appearance: none; border: 1px solid var(--line-2); background: transparent; color: var(--ink); font: 500 12.5px/1 var(--font-body); padding: 7px 11px; border-radius: 3px; cursor: pointer; }
+.code-card pre { margin: 0; padding: 14px 16px; overflow-x: auto; font: 400 13px/1.6 var(--font-mono); color: var(--ink); }
+.code-card mark { display: inline-block; min-width: 100%; background: var(--accent-wash); color: var(--accent-ink); font-weight: 600; }
+.code-card .c { color: var(--muted); }
+.back-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.foot { position: relative; font-size: 13px; color: var(--muted); padding: 14px 0 0 16px; }
+.foot::before { content: ""; position: absolute; left: 0; top: 14px; bottom: -44px; width: 1.5px; background: var(--brand); }
+.foot p { margin: 0; max-width: 100ch; }
+
+@media (max-width: 560px) { .step-btn[aria-current="step"] .lbl { display: none; } }
+@media (max-width: 920px) {
+  .walk { grid-template-columns: minmax(0, 1fr); grid-template-areas: "stage" "rail" "narr" "tl"; }
+  .howto { grid-template-columns: minmax(0, 1fr); }
+  .tl-row { grid-template-columns: 92px minmax(0, 1fr); }
+  .tl-note { margin-left: 0; }
+  .tl-label { font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scene *, .scene { animation: none !important; transition: none !important; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <marker id="m-write" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-write" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-held" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-held" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-csi" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-csi" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-commit" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="12" markerHeight="12" orient="auto"><path class="mk-commit" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="10" markerHeight="10" orient="auto"><path class="mk-ctrl" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <marker id="m-ctrl-on" viewBox="0 0 10 10" refX="8" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto"><path class="mk-ctrl-on" d="M0 .8L10 5L0 9.2Z"/></marker>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><path class="grid-line" d="M20 0H0V20"/></pattern>
+  </defs>
+</svg>
+
+<div class="page">
+  <header class="top">
+    <button class="dark-switch" id="dark-btn" type="button" role="switch" aria-checked="false" title="Dark mode (D)">Dark<span class="track"></span></button>
+    <div class="title-block">
+      <p class="eyebrow">KubeVirt · VirtualMachineSnapshot · spec.snapshotMode</p>
+      <h1><span class="flow-word" data-word="direct">Direct</span> vs <span class="flow-word" data-word="external">External</span> VM snapshots</h1>
+      <p class="lede">One running VM with one disk. Step through each flow to see where the guest's writes go and how long the guest stays frozen.</p>
+    </div>
+    <div class="controls">
+      <div class="tabs" role="tablist" aria-label="Flow">
+        <button class="tab" role="tab" type="button" data-view="direct" aria-selected="true">Direct <small>default</small></button>
+        <button class="tab" role="tab" type="button" data-view="external" aria-selected="false">External <small>new</small></button>
+        <button class="tab" role="tab" type="button" data-view="compare" aria-selected="false">Side by side</button>
+      </div>
+      <button class="ghost-btn" id="present" type="button">Present</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="view-walk" class="walk" aria-label="Step by step">
+      <div class="stage">
+        <svg id="scene" class="scene" viewBox="0 0 960 560" role="img" aria-label="Diagram of the snapshot data path at the current step"
+             data-flow="direct" data-guest="running" data-writes="base" data-held="0" data-scratch="ghost" data-plug="none" data-backing="0" data-commit="0" data-csi="none" data-ctrl="none" data-agent="0" data-lock="0" data-switch="none" data-vms="none">
+          <rect width="960" height="560" fill="url(#grid)"/>
+
+          <g class="ctrl-g">
+            <rect class="card" x="24" y="40" width="224" height="196" rx="2"/>
+            <text class="kicker" x="42" y="65">CONTROL PLANE</text>
+            <text class="title" x="42" y="89">virt-controller</text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="121">Watching for VMSnapshots</text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="143"></text>
+            <text class="line" data-line="ctrl" data-x="42" x="42" y="165"></text>
+            <path class="hair" d="M42 186H230"/>
+            <text class="k" x="42" y="214">VMSNAPSHOT</text>
+            <text class="v" id="vms" x="230" y="214" text-anchor="end">none</text>
+          </g>
+          <g class="ctrl-path c-pod"><path d="M250 120H292"/></g>
+          <text class="ctrl-label c-pod-l" x="271" y="110" text-anchor="middle">asks</text>
+
+          <rect class="pod" x="296" y="24" width="640" height="268" rx="0"/>
+          <text class="pod-label" x="316" y="49">virt-launcher pod</text>
+
+          <rect class="vm" x="316" y="62" width="344" height="210" rx="2"/>
+          <text class="vm-title" x="332" y="87">VM</text>
+          <text class="vm-sub" x="372" y="87">QEMU / KVM</text>
+          <rect class="guest" x="332" y="98" width="312" height="116" rx="2"/>
+          <text class="guest-title" x="348" y="124">Guest OS</text>
+          <rect class="badge" x="530" y="108" width="104" height="22" rx="11"/>
+          <circle class="ic ic-run" cx="545" cy="119" r="4"/>
+          <path class="ic ic-ice" d="M545 112.5V125.5M539.4 115.8L550.6 122.2M539.4 122.2L550.6 115.8"/>
+          <g class="ic ic-pause"><rect x="541" y="114" width="3" height="10" rx="1"/><rect x="546.5" y="114" width="3" height="10" rx="1"/></g>
+          <text class="badge-text" id="guest-badge" x="556" y="123">RUNNING</text>
+          <g class="app">
+            <path class="doc" d="M350 140h19l8 8v27a2 2 0 0 1-2 2h-25a2 2 0 0 1-2-2v-33a2 2 0 0 1 2-2z"/>
+            <path class="doc-lines" d="M354 154h17M354 160h17M354 166h11"/>
+            <text class="guest-title" x="388" y="154">app</text>
+            <text class="app-sub" x="388" y="170">writing files</text>
+          </g>
+          <rect class="agent-box" x="476" y="178" width="158" height="26" rx="2"/>
+          <text class="agent-text" x="555" y="195" text-anchor="middle">guest agent</text>
+          <rect class="vda" x="332" y="226" width="312" height="34" rx="2"/>
+          <text class="vda-label" x="346" y="248">vda</text>
+          <text class="vda-chain" id="vda-chain" x="632" y="248" text-anchor="end"><tspan class="vda-verb">uses </tspan>disk.img</text>
+
+          <rect class="card" x="680" y="62" width="236" height="154" rx="2"/>
+          <text class="kicker" x="698" y="86">VIRT-LAUNCHER</text>
+          <text class="title" x="698" y="110">libvirt calls</text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="140">domain running</text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="160"></text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="180"></text>
+          <text class="mono-line" data-line="lv" data-x="698" x="698" y="200"></text>
+
+          <g class="mount-g">
+            <rect class="mount-card" x="680" y="228" width="236" height="44" rx="2"/>
+            <text class="kicker" x="698" y="246">UTILITY VOLUME</text>
+            <text class="mount-name" id="mount-name" x="698" y="263">not attached</text>
+          </g>
+
+          <rect class="band" x="24" y="316" width="912" height="228" rx="0"/>
+          <text class="band-label" x="44" y="341">STORAGE · CSI DRIVER</text>
+
+          <g class="vs-g">
+            <rect class="card vs-card" x="48" y="360" width="216" height="160" rx="2"/>
+            <text class="kicker" x="66" y="385">VOLUMESNAPSHOT</text>
+            <text class="title" x="66" y="409">of rootdisk</text>
+            <g class="vs-check"><circle cx="242" cy="403" r="9"/><path d="M237.5 403l3 3 5.5-6"/></g>
+            <path class="vf" d="M66 434v-10h10M236 424h10v10M246 464v10h-10M76 474h-10v-10"/>
+            <g class="vs-copy">
+              <rect class="vs-chip" x="78" y="429" width="156" height="40" rx="2"/>
+              <text class="vs-chip-text" x="156" y="446" text-anchor="middle">disk.img</text>
+              <text class="vs-chip-sub" x="156" y="461" text-anchor="middle">as it was at the freeze</text>
+            </g>
+            <text class="tag" id="vs-status" x="66" y="503">not created</text>
+          </g>
+
+          <g class="base-g">
+            <rect class="card" x="332" y="360" width="252" height="160" rx="2"/>
+            <text class="kicker" x="350" y="385">PVC</text>
+            <text class="title" x="350" y="409">rootdisk</text>
+            <rect class="chip base-chip" x="350" y="426" width="216" height="44" rx="2"/>
+            <text class="chip-text" x="366" y="453">disk.img</text>
+            <g class="lock" transform="translate(500 438)"><path class="lock-shackle" d="M3 8V5a4 4 0 0 1 8 0v3"/><rect class="lock-body" x="0" y="8" width="14" height="11" rx="2"/></g>
+            <text class="chip-tag" x="552" y="452.5" text-anchor="end">RAW</text>
+            <text class="tag" id="base-tag" x="350" y="503">the guest's disk, read-write</text>
+          </g>
+
+          <g class="scratch-g">
+            <rect class="card scratch-card" x="664" y="360" width="252" height="160" rx="2"/>
+            <text class="kicker" id="scratch-kicker" x="682" y="385">DIRECT MODE</text>
+            <text class="title" id="scratch-title" x="682" y="409">no scratch PVC</text>
+            <g class="ovl-empty"><rect class="empty-chip" x="682" y="426" width="216" height="44" rx="2"/><text class="empty-text" x="790" y="452.5" text-anchor="middle">empty</text></g>
+            <g class="ovl">
+              <rect class="chip ovl-chip" x="682" y="426" width="216" height="44" rx="2"/>
+              <text class="chip-text" x="698" y="452.5">ovl-rootdisk.qcow2</text>
+              <path class="strike" d="M694 448H886"/>
+            </g>
+            <text class="tag" id="scratch-tag" x="682" y="503">not used in Direct mode</text>
+          </g>
+
+          <g class="ctrl-path c-csi"><path d="M216 238V356"/></g>
+          <text class="ctrl-label c-csi-l" x="226" y="302">creates</text>
+          <g class="ctrl-path c-scratch"><path d="M232 238V344H700V356"/></g>
+          <text class="ctrl-label c-scratch-l" id="c-scratch-l" x="642" y="336" text-anchor="middle">creates</text>
+
+          <g class="io-g a-csi"><path class="io-track" d="M348 446H270"/><path class="io-dots" d="M348 446H270"/></g>
+          <text class="io-label a-csi-l" x="298" y="434" text-anchor="middle">snapshot</text>
+          <g class="io-g a-backing"><path class="io-track" d="M680 438H572"/></g>
+          <text class="io-label a-backing-l" x="624" y="414" text-anchor="middle">backing</text>
+          <text class="io-label a-backing-l" x="624" y="427" text-anchor="middle">file</text>
+          <g class="io-g a-commit"><path class="io-track" d="M680 460H572"/><path class="io-dots" d="M680 460H572"/><path class="io-dots nw" d="M680 460H572"/></g>
+          <text class="io-label a-commit-l" x="624" y="484" text-anchor="middle">block</text>
+          <text class="io-label a-commit-l" x="624" y="497" text-anchor="middle">commit</text>
+          <text class="io-label a-commit-l nw-l" x="624" y="512" text-anchor="middle">+ new</text>
+          <text class="io-label a-commit-l nw-l" x="624" y="525" text-anchor="middle">writes</text>
+          <g class="ready-pill"><rect class="switch-pill" x="594" y="447" width="60" height="26"/><text class="switch-text" x="624" y="464.5" text-anchor="middle">READY</text></g>
+          <path class="plug-line" d="M880 358V274"/>
+          <g class="plug-pill"><rect class="switch-pill" x="838" y="303" width="84" height="26"/><text class="switch-text" id="plug-text" x="880" y="320.5" text-anchor="middle">HOTPLUG</text></g>
+
+          <g class="io-g write"><path class="io-track" d="M363 180V222"/><path class="io-dots" d="M363 180V222"/></g>
+          <g class="io-g write w-base"><path class="io-track" d="M458 262V422"/><path class="io-dots" d="M458 262V422"/></g>
+          <g class="io-g write w-ovl"><path class="io-track" d="M610 262C610 330 868 318 868 422"/><path class="io-dots" d="M610 262C610 330 868 318 868 422"/></g>
+          <g class="w-base-l"><text class="w-label go" x="468" y="307">writes</text><text class="w-label wait" x="468" y="307">writes wait</text><text class="w-label flush" x="468" y="307">flushing</text></g>
+          <g class="w-ovl-l"><text class="w-label go" x="772" y="306">writes</text><text class="w-label wait" x="772" y="306">writes wait</text></g>
+          <g class="switch-g pivot-g">
+            <path class="switch-line" d="M766 338H484"/>
+            <path class="switch-head" d="M470 338l14-7v14z"/>
+            <circle class="switch-dot" cx="766" cy="338" r="4"/>
+            <rect class="switch-pill" x="580" y="325" width="72" height="26" rx="0"/>
+            <text class="switch-text" x="616" y="342.5" text-anchor="middle">PIVOT</text>
+          </g>
+          <g class="switch-g overlay-g">
+            <path class="switch-line" d="M458 338H740"/>
+            <path class="switch-head" d="M754 338l-14-7v14z"/>
+            <circle class="switch-dot" cx="458" cy="338" r="4"/>
+            <rect class="switch-pill" x="520" y="325" width="172" height="26" rx="0"/>
+            <text class="switch-text" x="606" y="342.5" text-anchor="middle">EXTERNAL SNAPSHOT</text>
+          </g>
+        </svg>
+      </div>
+
+      <aside class="narr" aria-live="polite">
+        <p class="meta"><span class="flow-chip" id="flow-chip">Direct</span><span id="step-of">Step 1 of 4</span></p>
+        <h2 id="ph-title">The VM is running</h2>
+        <p class="body" id="ph-body">The guest reads and writes <code>disk.img</code> on the <code>rootdisk</code> PVC. No snapshot has been requested yet.</p>
+        <p class="note" id="ph-note" hidden><b>Note</b><span id="ph-note-text"></span></p>
+        <dl class="facts">
+          <div><dt>Guest</dt><dd id="f-guest" data-tone="running">Running</dd></div>
+          <div><dt>Writes go to</dt><dd id="f-writes" data-tone="base">disk.img</dd></div>
+          <div><dt>VMSnapshot</dt><dd id="f-vms" data-tone="none">not created</dd></div>
+        </dl>
+      </aside>
+
+      <nav class="rail" aria-label="Steps">
+        <button class="nav-btn" id="prev" type="button">← Back</button>
+        <ol id="steps"></ol>
+        <button class="nav-btn primary" id="next" type="button">Next →</button>
+      </nav>
+
+      <div class="tl" aria-hidden="true">
+        <div class="tl-row"><span class="tl-label">Guest</span><div class="tl-track" id="tl-guest"></div></div>
+        <div class="tl-row"><span class="tl-label">VolumeSnapshot</span><div class="tl-track" id="tl-csi"></div></div>
+        <p class="tl-note">Schematic: widths show order and rough proportion, not measured time. Use ← → or Page Up / Page Down to step, F for full screen, D for dark mode.</p>
+      </div>
+    </section>
+
+    <section id="view-compare" class="compare" aria-label="Side by side" hidden>
+      <div class="cmp-head">
+        <h2>Same disk, same CSI snapshot, two flows</h2>
+        <p>Both rows take the same VolumeSnapshot of the same disk. The difference is what the guest does while the CSI driver works.</p>
+      </div>
+
+      <div class="panel cmp-chart-wrap">
+        <div class="cmp-chart" role="img" aria-label="Schematic timeline. Both flows first freeze the guest while it flushes data to disk. Direct then keeps it frozen for the whole CSI snapshot. External keeps it frozen for one libvirt call, keeps it running during the CSI snapshot, and pauses it briefly to pivot.">
+          <div class="cmp-row">
+            <div class="cmp-name">Direct</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts"></div>
+              <div class="cmp-track">
+                <div class="cs run" style="left:0;width:8%"></div>
+                <div class="cs freezing" style="left:8%;width:9%">Freezing</div>
+                <div class="cs frozen" style="left:17%;width:45%">Frozen until the storage has snapshotted every disk</div>
+                <div class="cs run" style="left:62%;width:38%">Running</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs csi" style="left:19%;width:41%">CSI snapshot</div></div>
+            </div>
+          </div>
+          <div class="cmp-row">
+            <div class="cmp-name">External</div>
+            <div class="cmp-lanes">
+              <div class="cmp-callouts">
+                <span class="callout ice" style="left:26.8%">frozen for one libvirt call</span>
+                <span class="callout pause" style="left:80.6%">paused to pivot</span>
+              </div>
+              <div class="cmp-track">
+                <div class="cs run" style="left:0;width:17%">Running</div>
+                <div class="cs freezing" style="left:17%;width:9%">Freezing</div>
+                <div class="cs frozen" style="left:26%;width:1.6%"></div>
+                <div class="cs run" style="left:27.6%;width:41.4%">Running, writes go to the overlay</div>
+                <div class="cs commit" style="left:69%;width:11%">Block commit</div>
+                <div class="cs paused" style="left:80%;width:1.2%"></div>
+                <div class="cs run" style="left:81.2%;width:18.8%">Running</div>
+              </div>
+              <div class="cmp-track thin"><div class="cs csi" style="left:28%;width:41%">CSI snapshot</div></div>
+              <div class="cmp-track thin"><div class="cs scratch" style="left:8%;width:82%">scratch PVC, attached as a utility volume</div></div>
+            </div>
+          </div>
+          <div class="cmp-axis">
+            <span></span>
+            <div class="axis">
+              <span class="tick" style="left:8%">VMSnapshot created</span>
+              <span style="right:0">schematic, not to scale · time →</span>
+            </div>
+          </div>
+        </div>
+        <ul class="legend">
+          <li><span class="sw run"></span>Running</li>
+          <li><span class="sw freezing"></span>Freezing, flushing to disk</li>
+          <li><span class="sw frozen"></span>Filesystems frozen</li>
+          <li><span class="sw paused"></span>Paused</li>
+          <li><span class="sw commit"></span>Block commit</li>
+          <li><span class="sw csi"></span>CSI snapshot</li>
+          <li><span class="sw scratch"></span>Scratch PVC</li>
+        </ul>
+      </div>
+
+      <p class="takeaway">Both flows start by freezing, while the guest flushes cached data to disk. Direct then keeps the guest frozen through the whole CSI snapshot. External keeps it frozen for one libvirt call. On Windows, VSS can keep a guest frozen for at most 10 seconds.</p>
+
+      <div class="panel table-wrap">
+        <table class="cmp-table">
+          <thead><tr><th scope="col"></th><th scope="col">Direct</th><th scope="col" class="ext">External</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Freezing</th><td>The guest flushes cached data to disk. KubeVirt gives the freeze call up to 60 seconds</td><td>The same flush, but freezing and the switch to overlays must finish within 10 seconds</td></tr>
+            <tr><th scope="row">Guest frozen</th><td>Until the storage has snapshotted every disk</td><td>For one libvirt call that switches the disks to overlays</td></tr>
+            <tr><th scope="row">Writes during the CSI snapshot</th><td>Wait</td><td>Go to a qcow2 overlay on the scratch PVC</td></tr>
+            <tr><th scope="row">Extra storage</th><td>None</td><td>A scratch PVC, attached as a utility volume and deleted at the end</td></tr>
+            <tr><th scope="row">Guest pauses</th><td>None</td><td>One short pause per disk, to pivot back</td></tr>
+            <tr><th scope="row">Guest agent</th><td>Optional, without it there is no freeze</td><td>Required</td></tr>
+            <tr><th scope="row">VMSnapshot succeeds</th><td>When every VolumeSnapshot has a <code>creationTime</code></td><td>When every VolumeSnapshot is <code>readyToUse</code>, before the merge</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="howto">
+        <div class="howto-text">
+          <h3>How to ask for it</h3>
+          <p>Set <code>snapshotMode: External</code> on the VirtualMachineSnapshot. Without the field, snapshots keep using Direct.</p>
+          <p><code>overlayScratchSize</code> is optional and is accepted only with External mode. External mode is Alpha and needs the <code>ExternalVMSnapshot</code> feature gate.</p>
+        </div>
+        <div class="panel code-card">
+          <div class="code-head"><span>vmsnapshot.yaml</span><button class="copy-btn" id="copy-yaml" type="button">Copy</button></div>
+<pre id="yaml">apiVersion: snapshot.kubevirt.io/v1beta1
+kind: VirtualMachineSnapshot
+metadata:
+  name: my-vm-snap
+spec:
+  source:
+    apiGroup: kubevirt.io
+    kind: VirtualMachine
+    name: my-vm
+<mark>  snapshotMode: External</mark>
+  overlayScratchSize: 10Gi  <span class="c"># optional</span></pre>
+        </div>
+      </div>
+
+      <div class="back-row">
+        <button class="nav-btn" id="back-external" type="button">← External flow</button>
+        <button class="nav-btn" id="back-direct" type="button">Direct flow</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p>Follows the code on kubevirt/kubevirt main: <code>pkg/storage/snapshot/external.go</code> (virt-controller) and <code>pkg/virt-launcher/virtwrap/storage/external_snapshot.go</code> (virt-launcher). The design is VEP 321.</p>
+  </footer>
+</div>
+
+<script>
+(() => {
+  const BASE = { guest: "running", writes: "base", held: "0", scratch: "ghost", plug: "none", backing: "0", commit: "0", csi: "none", ctrl: "none", agent: "0", lock: "0", switch: "none" };
+  const GHOST_DIRECT = { kicker: "DIRECT MODE", title: "no scratch PVC", tag: "not used in Direct mode" };
+  const GHOST_EXTERNAL = { kicker: "NOT CREATED YET", title: "no scratch PVC", tag: "created when a snapshot starts" };
+  const scratch = (tag) => ({ kicker: "PVC · UTILITY VOLUME", title: "snap-scratch-<uid>", tag });
+
+  const FLOWS = {
+    direct: {
+      label: "Direct",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "The VM is running",
+          body: "The guest reads and writes `disk.img` on the `rootdisk` PVC. No snapshot has been requested yet.",
+          s: {},
+          ctrl: ["Watching for VMSnapshots"], vms: "none",
+          lv: ["domain running"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: GHOST_DIRECT
+        },
+        {
+          short: "Freezing", w: 1.2,
+          title: "Freeze the guest",
+          body: "A VirtualMachineSnapshot is created. virt-controller asks virt-launcher, through virt-handler, to freeze the guest. Before the guest agent can freeze the filesystems, the guest flushes the dirty data it holds in RAM to disk. How long that takes depends on how much data there is and how fast the disk is.",
+          note: "Windows guests are usually slower, because VSS writers prepare the applications first. KubeVirt gives the freeze call up to 60 seconds.",
+          s: { guest: "freezing", ctrl: "pod", agent: "1" },
+          ctrl: ["VMSnapshot created", "→ freeze the guest"], vms: "InProgress",
+          lv: ["virDomainFSFreeze", "  → guest agent", "    guest-fsfreeze-freeze", "waiting for the flush"],
+          vda: "disk.img", base: "receiving the flushed data", vs: "not created", sc: GHOST_DIRECT
+        },
+        {
+          short: "CSI snapshot", w: 5,
+          title: "Frozen while CSI snapshots the disk",
+          body: "Once the guest is frozen, virt-controller creates a VolumeSnapshot of the `rootdisk` PVC, and the CSI driver takes the snapshot on the storage. Writes wait until the storage has snapshotted every disk of the VM, which each VolumeSnapshot reports with a `creationTime`. So the guest stays frozen as long as the storage needs.",
+          note: "On Windows, VSS can keep the guest frozen for at most 10 seconds.",
+          s: { guest: "frozen", held: "1", ctrl: "csi", csi: "cutting" },
+          ctrl: ["→ create VolumeSnapshot", "Waits for its creationTime"], vms: "InProgress",
+          lv: ["guest still frozen", "waiting for the thaw"],
+          vda: "disk.img", base: "not changing, guest frozen", vs: "snapshot in progress", sc: GHOST_DIRECT
+        },
+        {
+          short: "Thaw", w: 2,
+          title: "Thaw the guest",
+          body: "When every VolumeSnapshot has a `creationTime`, virt-controller thaws the guest and writes resume. The VMSnapshot succeeds, and it is ready to use once its VolumeSnapshots are `readyToUse`.",
+          note: "A Windows guest that has to stay frozen longer than 10 seconds hits the VSS limit, and the VMSnapshot is flagged `QuiesceTimeout`. Every extra disk makes that more likely.",
+          s: { ctrl: "pod", agent: "1", csi: "ready" },
+          ctrl: ["creationTime set", "→ thaw the guest"], vms: "Succeeded",
+          lv: ["virDomainFSThaw", "  → guest agent", "    guest-fsfreeze-thaw"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true", sc: GHOST_DIRECT
+        }
+      ]
+    },
+    external: {
+      label: "External",
+      steps: [
+        {
+          short: "Running", w: 2,
+          title: "The VM is running",
+          body: "The guest reads and writes `disk.img` on the `rootdisk` PVC. External mode needs the guest agent to be connected.",
+          s: {},
+          ctrl: ["Watching for VMSnapshots"], vms: "none",
+          lv: ["domain running"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: GHOST_EXTERNAL
+        },
+        {
+          short: "Scratch PVC", w: 1.6,
+          title: "Add a scratch PVC",
+          body: "A VirtualMachineSnapshot with `snapshotMode: External` is created. virt-controller creates an empty PVC, `snap-scratch-<content-uid>`, and hot-plugs it into the virt-launcher pod as a utility volume. As with any hot-plugged volume, an attachment pod mounts the PVC on the node and virt-handler bind-mounts it into virt-launcher. Unlike a disk, a utility volume is never shown to the guest.",
+          note: "virt-controller waits until the volume is attached before it asks for the overlays. Its size is `spec.overlayScratchSize`, or an estimate from the snapshot's failure deadline and the size of the disks.",
+          s: { scratch: "empty", plug: "plugging", ctrl: "scratch" }, cmd: "creates",
+          ctrl: ["VMSnapshot created", "→ create a scratch PVC", "→ hot-plug it"], vms: "InProgress",
+          lv: ["domain running", "disks unchanged"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "not created", sc: scratch("empty, mounted in the pod")
+        },
+        {
+          short: "Freezing", w: 1.2,
+          title: "Freeze the guest",
+          body: "virt-controller asks virt-launcher for the overlays. virt-launcher first asks the guest agent to freeze the guest, and the guest flushes the dirty data it holds in RAM to disk. How long that takes depends on how much data there is and how fast the disk is.",
+          note: "External mode gives freezing and the switch in the next step 10 seconds together. If they take longer, the snapshot fails.",
+          s: { guest: "freezing", scratch: "empty", plug: "1", ctrl: "pod", agent: "1" },
+          ctrl: ["→ ask virt-launcher", "  for the overlays"], vms: "InProgress",
+          lv: ["virDomainFSFreeze", "  → guest agent", "    guest-fsfreeze-freeze", "waiting for the flush"],
+          vda: "disk.img", base: "receiving the flushed data", vs: "not created", sc: scratch("empty, mounted in the pod")
+        },
+        {
+          short: "Overlay", w: 0.55,
+          title: "Switch the disk to an overlay",
+          body: "One atomic libvirt call creates `ovl-rootdisk.qcow2` on the scratch PVC and points `vda` at it. `disk.img` becomes the overlay's read-only backing file. libvirt calls this an external snapshot, which gives External mode its name. The guest is still frozen.",
+          note: "With several disks, every disk switches in this same call, so all the overlays start at the same instant.",
+          s: { guest: "frozen", held: "1", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", switch: "overlay" },
+          ctrl: ["Waits for the overlays"], vms: "InProgress",
+          lv: ["virDomainSnapshotCreateXML", "  DISK_ONLY | ATOMIC |", "  NO_METADATA"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "not created", sc: scratch("holds the new overlay")
+        },
+        {
+          short: "Thaw", w: 0.55,
+          title: "Thaw the guest",
+          body: "virt-launcher thaws the guest as soon as the call returns. New writes now go to the overlay, and reads of blocks the guest hasn't rewritten come from `disk.img`.",
+          note: "In one of our test runs, freezing took 207 ms and the guest then stayed frozen for 319 ms.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", agent: "1" },
+          ctrl: ["Overlays are ready"], vms: "InProgress",
+          lv: ["virDomainFSThaw", "  → guest agent", "    guest-fsfreeze-thaw"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "not created", sc: scratch("new writes land here")
+        },
+        {
+          short: "CSI snapshot", w: 4.6,
+          title: "CSI snapshots the base while the guest runs",
+          body: "virt-controller creates the VolumeSnapshot of the `rootdisk` PVC. `disk.img` no longer changes, so the CSI driver can take as long as it needs while the guest keeps running on the overlay.",
+          note: "If the scratch PVC gets 70% full first, virt-launcher merges the overlay early to keep the guest running, and this snapshot fails.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", lock: "1", ctrl: "csi", csi: "cutting" },
+          ctrl: ["→ create VolumeSnapshot", "Waits for readyToUse"], vms: "InProgress",
+          lv: ["watching scratch usage", "  merges early at 70%"],
+          vda: "ovl-rootdisk.qcow2", base: "read-only backing file", vs: "snapshot in progress", sc: scratch("new writes land here")
+        },
+        {
+          short: "Commit", w: 2.6,
+          title: "Snapshot done, merge the overlay back",
+          body: "When every VolumeSnapshot is `readyToUse`, virt-controller records the snapshot time and the VMSnapshot succeeds. It then asks virt-launcher to commit, and libvirt's active block commit copies the overlay into `disk.img`. The guest keeps writing to the overlay, and the commit copies each new write into `disk.img` as well.",
+          note: "A write is copied after it lands in the overlay, not as part of it: QEMU runs an active commit in background copy mode. Once only the newest writes are left to copy, libvirt reports the job READY.",
+          s: { writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "1", ctrl: "pod", csi: "ready" },
+          ctrl: ["readyToUse, time recorded", "→ commit the overlays"], vms: "Succeeded",
+          lv: ["virDomainBlockCommit", "  vda, flags ACTIVE", "copies ovl → disk.img", "  and each new write"],
+          vda: "ovl-rootdisk.qcow2", base: "catching up with the overlay", vs: "readyToUse: true", sc: scratch("being merged into disk.img")
+        },
+        {
+          short: "Pause", w: 0.55,
+          title: "Commit ready, pause the guest",
+          body: "libvirt reports the block job READY once `disk.img` has caught up with the overlay. virt-launcher pauses the guest right away, so no new write arrives before the switch. The guest stays paused from READY until the pivot.",
+          note: "If the commit has not caught up after 4 minutes, the guest is paused early to let it finish. Each disk gets 5 minutes in total.",
+          s: { guest: "paused", held: "1", writes: "overlay", scratch: "overlay", plug: "1", backing: "1", commit: "sync", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["block job ready", "virDomainSuspend"],
+          vda: "ovl-rootdisk.qcow2", base: "caught up with the overlay", vs: "readyToUse: true", sc: scratch("in sync with disk.img")
+        },
+        {
+          short: "Pivot", w: 0.55,
+          title: "Pivot vda back to disk.img",
+          body: "libvirt pivots `vda` from the overlay back to `disk.img`, the reverse of step 4. QEMU copies the last blocks still left, switches, and that ends the block commit. virt-launcher deletes the overlay file while the guest is still paused, so a crash can't leave behind a stale overlay that looks live.",
+          s: { guest: "paused", held: "1", scratch: "deleted", plug: "1", switch: "pivot", csi: "ready" },
+          ctrl: ["Waits for the commit"], vms: "Succeeded",
+          lv: ["virDomainBlockJobAbort", "  vda, flags PIVOT", "unlink ovl-rootdisk.qcow2"],
+          vda: "disk.img", base: "the guest's disk again", vs: "readyToUse: true", sc: scratch("overlay deleted")
+        },
+        {
+          short: "Resume", w: 0.55,
+          title: "Resume the guest",
+          body: "virt-launcher resumes the guest, and its writes go to `disk.img` again.",
+          note: "With several disks, steps 7 to 10 run once per disk, one disk at a time, so each disk gets its own short pause.",
+          s: { scratch: "deleted", plug: "1", csi: "ready" },
+          ctrl: ["Overlays committed"], vms: "Succeeded",
+          lv: ["virDomainResume"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true", sc: scratch("overlay deleted")
+        },
+        {
+          short: "Cleanup", w: 1.6,
+          title: "Remove the scratch PVC",
+          body: "virt-controller removes the utility volume from the VMI, which unplugs the scratch PVC from the pod, and then deletes the PVC. The VM is back where it started, and the VolumeSnapshot holds `disk.img` as it was at the freeze.",
+          s: { scratch: "removed", plug: "unplugging", ctrl: "scratch", csi: "ready" }, cmd: "deletes",
+          ctrl: ["→ unplug the utility volume", "→ delete the scratch PVC"], vms: "Succeeded",
+          lv: ["domain running", "no overlays left"],
+          vda: "disk.img", base: "the guest's disk, read-write", vs: "readyToUse: true",
+          sc: { kicker: "DELETED", title: "snap-scratch-<uid>", tag: "unplugged and deleted" }
+        }
+      ]
+    }
+  };
+
+  const GUEST_LABEL = { running: "Running", freezing: "Freezing", frozen: "Filesystems frozen", paused: "Paused" };
+  const BADGE = { running: "RUNNING", freezing: "FREEZING", frozen: "FS FROZEN", paused: "PAUSED" };
+  const VIEWS = ["direct", "external", "compare"];
+
+  const $ = (id) => document.getElementById(id);
+  const scene = $("scene");
+  const tabs = [...document.querySelectorAll(".tab")];
+  const stepsOl = $("steps"), tlGuest = $("tl-guest"), tlCsi = $("tl-csi");
+  const prevBtn = $("prev"), nextBtn = $("next"), presentBtn = $("present");
+  let view = "direct", step = 0, builtFor = null;
+
+  const escapeHTML = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const richText = (s) => escapeHTML(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+  const text = (id, value) => { $(id).textContent = value; };
+  const setVda = (file) => {
+    const verb = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+    verb.setAttribute("class", "vda-verb");
+    verb.textContent = "uses ";
+    $("vda-chain").replaceChildren(verb, file);
+  };
+
+  function setLines(name, lines, charWidth) {
+    scene.querySelectorAll(`[data-line="${name}"]`).forEach((el, i) => {
+      const raw = lines[i] || "";
+      const trimmed = raw.trimStart();
+      el.textContent = trimmed;
+      el.setAttribute("x", Number(el.dataset.x) + (raw.length - trimmed.length) * charWidth);
+    });
+  }
+
+  function setFact(id, value, tone) {
+    const el = $(id);
+    el.textContent = value;
+    el.dataset.tone = tone;
+  }
+
+  function build(flowKey) {
+    const flow = FLOWS[flowKey];
+    stepsOl.replaceChildren();
+    tlGuest.replaceChildren();
+    tlCsi.replaceChildren();
+    let readyLabelled = false;
+    flow.steps.forEach((s, i) => {
+      const li = document.createElement("li");
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "step-btn";
+      b.setAttribute("aria-label", `Step ${i + 1}: ${s.title}`);
+      b.title = s.title;
+      b.innerHTML = `<span class="n">${i + 1}</span><span class="lbl">${escapeHTML(s.short)}</span>`;
+      b.addEventListener("click", () => { step = i; render(); });
+      li.append(b);
+      stepsOl.append(li);
+
+      const st = { ...BASE, ...s.s };
+      const g = document.createElement("div");
+      g.className = `tl-seg ${st.guest === "running" ? "run" : st.guest}`;
+      g.style.flex = `${s.w} 1 0`;
+      g.textContent = i + 1;
+      tlGuest.append(g);
+
+      const c = document.createElement("div");
+      c.className = `tl-seg ${st.csi}`;
+      c.style.flex = `${s.w} 1 0`;
+      if (st.csi === "cutting") c.textContent = "in progress";
+      if (st.csi === "ready" && !readyLabelled) { c.textContent = "ready"; readyLabelled = true; }
+      tlCsi.append(c);
+    });
+    builtFor = flowKey;
+  }
+
+  function render() {
+    tabs.forEach((t) => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+    document.querySelectorAll(".flow-word").forEach((w) => w.classList.toggle("on", w.dataset.word === view));
+    const compare = view === "compare";
+    $("view-walk").hidden = compare;
+    $("view-compare").hidden = !compare;
+    try { history.replaceState(null, "", "#" + view); } catch (e) { /* the viewer may not allow it */ }
+    if (compare) return;
+
+    if (builtFor !== view) build(view);
+    const flow = FLOWS[view];
+    const s = flow.steps[step];
+    const st = { ...BASE, ...s.s };
+
+    Object.entries(st).forEach(([k, v]) => scene.setAttribute("data-" + k, v));
+    scene.setAttribute("data-flow", view);
+    scene.setAttribute("data-vms", s.vms);
+    setLines("ctrl", s.ctrl, 6.6);
+    setLines("lv", s.lv, 7.2);
+    text("vms", s.vms);
+    text("guest-badge", BADGE[st.guest]);
+    setVda(s.vda);
+    text("base-tag", s.base);
+    text("vs-status", s.vs);
+    text("scratch-kicker", s.sc.kicker);
+    text("scratch-title", s.sc.title);
+    text("scratch-tag", s.sc.tag);
+    text("mount-name", st.plug === "none" ? "not attached" : "snap-scratch-<uid>");
+    text("plug-text", st.plug === "unplugging" ? "UNPLUG" : "HOTPLUG");
+    text("c-scratch-l", s.cmd || "");
+
+    const chip = $("flow-chip");
+    chip.textContent = flow.label;
+    chip.className = "flow-chip " + view;
+    text("step-of", `Step ${step + 1} of ${flow.steps.length}`);
+    text("ph-title", s.title);
+    $("ph-body").innerHTML = richText(s.body);
+    $("ph-note").hidden = !s.note;
+    $("ph-note-text").innerHTML = s.note ? richText(s.note) : "";
+
+    const held = st.held === "1";
+    setFact("f-guest", GUEST_LABEL[st.guest], st.guest);
+    if (st.guest === "freezing") setFact("f-writes", "flushing to disk.img", "base");
+    else if (held) setFact("f-writes", st.guest === "paused" ? "wait, guest paused" : "wait, guest frozen", "wait");
+    else if (st.commit === "1") setFact("f-writes", "overlay → disk.img", "overlay");
+    else if (st.writes === "overlay") setFact("f-writes", "ovl-rootdisk.qcow2", "overlay");
+    else setFact("f-writes", "disk.img", "base");
+    setFact("f-vms", s.vms === "none" ? "not created" : s.vms, s.vms);
+
+    [...stepsOl.children].forEach((li, i) => {
+      const b = li.firstElementChild;
+      if (i === step) b.setAttribute("aria-current", "step"); else b.removeAttribute("aria-current");
+      b.classList.toggle("done", i < step);
+    });
+    [...tlGuest.children, ...tlCsi.children].forEach((el, i) => el.classList.toggle("active", i % flow.steps.length === step));
+
+    const last = step === flow.steps.length - 1;
+    nextBtn.textContent = last ? (view === "direct" ? "External flow →" : "Side by side →") : "Next →";
+    prevBtn.textContent = step === 0 && view === "external" ? "← Direct flow" : "← Back";
+    prevBtn.disabled = step === 0 && view === "direct";
+  }
+
+  function go(v, i = 0) { view = v; step = i; render(); }
+
+  function next() {
+    if (view === "compare") return;
+    if (step < FLOWS[view].steps.length - 1) step++;
+    else if (view === "direct") return go("external");
+    else return go("compare");
+    render();
+  }
+
+  function prev() {
+    if (view === "compare") return go("external", FLOWS.external.steps.length - 1);
+    if (step > 0) step--;
+    else if (view === "external") return go("direct", FLOWS.direct.steps.length - 1);
+    render();
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenEnabled) return;
+    const p = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
+    if (p && p.catch) p.catch(() => {});
+  }
+
+  tabs.forEach((t) => t.addEventListener("click", () => go(t.dataset.view)));
+  nextBtn.addEventListener("click", next);
+  prevBtn.addEventListener("click", prev);
+  $("back-external").addEventListener("click", () => go("external", FLOWS.external.steps.length - 1));
+  $("back-direct").addEventListener("click", () => go("direct"));
+
+  // Dark mode: off by default, the viewer's choice kept per browser. It never follows the system or the host theme.
+  const darkBtn = $("dark-btn");
+  let dark = false;
+  try { const saved = localStorage.getItem("dark"); if (saved !== null) dark = saved === "1"; } catch (e) { /* a per-browser convenience */ }
+  function setDark(on) {
+    dark = on;
+    document.documentElement.toggleAttribute("data-dark", on);
+    darkBtn.setAttribute("aria-checked", String(on));
+    try { localStorage.setItem("dark", on ? "1" : "0"); } catch (e) { /* a per-browser convenience */ }
+  }
+  setDark(dark);
+  darkBtn.addEventListener("click", () => setDark(!dark));
+
+  if (document.fullscreenEnabled) {
+    presentBtn.addEventListener("click", toggleFullscreen);
+    document.addEventListener("fullscreenchange", () => {
+      presentBtn.textContent = document.fullscreenElement ? "Exit full screen" : "Present";
+    });
+  } else {
+    presentBtn.hidden = true;
+  }
+
+  document.addEventListener("keydown", (e) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const onButton = e.target instanceof HTMLButtonElement;
+    if (e.key === "ArrowRight" || e.key === "PageDown" || (e.key === " " && !onButton)) { e.preventDefault(); next(); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); prev(); }
+    else if (e.key === "f" || e.key === "F") toggleFullscreen();
+    else if (e.key === "d" || e.key === "D") setDark(!dark);
+    else if (e.key === "1" || e.key === "2" || e.key === "3") go(VIEWS[Number(e.key) - 1]);
+  });
+
+  const copyBtn = $("copy-yaml");
+  copyBtn.addEventListener("click", () => {
+    const pre = $("yaml");
+    const reset = () => setTimeout(() => { copyBtn.textContent = "Copy"; }, 1800);
+    const selectInstead = () => {
+      const range = document.createRange();
+      range.selectNodeContents(pre);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      copyBtn.textContent = "Selected, press Ctrl+C";
+      reset();
+    };
+    try {
+      navigator.clipboard.writeText(pre.textContent).then(() => { copyBtn.textContent = "Copied"; reset(); }, selectInstead);
+    } catch (e) {
+      selectInstead();
+    }
+  });
+
+  const fromHash = (location.hash || "").slice(1);
+  if (VIEWS.includes(fromHash)) view = fromHash;
+  render();
+})();
+</script>

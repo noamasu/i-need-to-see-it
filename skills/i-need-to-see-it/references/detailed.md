@@ -128,7 +128,8 @@ const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name"
 const YAML = {
   external: [
     { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
-      2: [{ by: "you", set: { "spec.source.kind": "VirtualMachine", "spec.source.name": "my-vm", "spec.snapshotMode": "External" } },
+      2: [{ by: "you", rest: true, set: { "metadata.namespace": "default", "spec.source.apiGroup": "kubevirt.io" } },
+          { by: "you", set: { "spec.source.kind": "VirtualMachine", "spec.source.name": "my-vm", "spec.snapshotMode": "External" } },
           { by: "virt-controller", set: { "status.phase": "InProgress", "status.indications[Online]": "" } }],
       7: { by: "virt-controller", set: { "status.phase": "Succeeded", "status.readyToUse": "true" } }
     } },
@@ -169,11 +170,19 @@ const YAML = {
   under it; a list with a `null` key field (`finalizers`, `indications`) prints
   `- <key>` and ignores the value. Add a list to `LISTS` when the subject has one the
   default set lacks.
-- Only the fields that matter: what the user sets, what the controllers write, what
-  the next step reads. Not `apiVersion`, `kind`, `resourceVersion`, timestamps or
-  managed fields. Values as the API shows them: quote condition statuses
-  (`"\"True\""`), use the example's real names, and `<uid>`, `<time>` placeholders
-  for what differs per run.
+- The drawer has two modes. Changes shows what the steps touch. Everything shows each
+  object whole, as `kubectl get -o yaml` would at that step. The drawer prints
+  `apiVersion`, `kind` and `metadata.name` from `api`, `kind` and `name`, so use the
+  real name and version (a label may follow the version after ` · `).
+- A delta marked `rest: true` completes the manifest: namespace, labels, finalizers,
+  owner references, the example's whole spec, the status nothing changes. Read it
+  from the code at the pinned ref or from a live object, and skip `managedFields`,
+  `resourceVersion`, `generation`, `uid` and timestamps. Only Everything shows it.
+- An object in another data serialization or interchange format carries `full`: its
+  text, or `{ <n>: text }` per step it changes at. Everything prints it with a line
+  diff. Give it an `api` that is not a version (`libvirt`).
+- Values as the API shows them: quote condition statuses (`"\"True\""`), use the
+  example's real names, and `<uid>`, `<time>` placeholders for what differs per run.
 - The drawer computes the diff against the previous step, so the deltas, the `API`
   lines and the facts must agree: a line in `API` that says a field changed is a
   `set` here, a removal is a `del`, a check is a `read`. Step 1 is the baseline and
@@ -200,6 +209,8 @@ const YAML = {
   `sed 's/yamlOpen = false, yamlMode = "changes"/yamlOpen = true, yamlMode = "changes"/' page.html > drawer.html`
   (and `"all"` for the second). Read every changed line: the old value must be the
   one the previous step set, a removed object must be the one the step deletes, and
-  no line may say more than the step's text and `API` lines say.
+  in Changes no line may say more than the step's text and `API` lines say. In
+  Everything each object must be whole: a manifest that would pass
+  `kubectl apply --dry-run=client` once the placeholders are filled, or its `full` text.
 - With the block open on a busy step, the narration column scrolls; the facts stay at
   its end. That is expected.

@@ -182,8 +182,8 @@ Copy `assets/template.html` into the scratchpad as `<slug>.html`.
 - **Detailed mode:** fill `API`, `SURFACE` and `YAML` as `references/detailed.md`
   says, from the same event list: every field, condition, reason, annotation,
   finalizer, event, guard and constant the flow touches, per step only what changes,
-  and per object the fields that matter as deltas, so the drawer can show the old
-  value next to the new one. A subject with two parts gets two groups on the surface.
+  and per object its whole manifest as deltas, so the drawer can show the old value
+  next to the new one. A subject with two parts gets two groups on the surface.
 - **Style:** the default is plain, as the template ships. For `--style redhat` or a
   saved style, replace the `:root` block, add the font links and adjust `rx` as the
   style file says. For a file the user
@@ -240,7 +240,8 @@ Look for:
 - an empty narration column, which means a script error;
 - a scene that disagrees with the step's text;
 - a step whose "In the API" lines disagree with its facts;
-- a drawer line whose old value is not what the previous step set.
+- a drawer line whose old value is not what the previous step set;
+- an object that is not whole in the drawer's Everything mode.
 
 `grep -n TODO` must come back empty.
 

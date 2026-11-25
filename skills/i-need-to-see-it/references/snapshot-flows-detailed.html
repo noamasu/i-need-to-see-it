@@ -1443,49 +1443,62 @@ spec:
   const unplugged = [...Object.keys(scratchVolume), "metadata.annotations[snapshot.kubevirt.io/overlay-reference]"];
   const unplugStatus = [...Object.keys(paused), ...Object.keys(scratchStatus(""))];
 
+  // The rest of each manifest: what Everything shows around the fields the steps change
+  const rest = (by, set) => ({ by, rest: true, set });
+  const NS = { "metadata.namespace": "default" };
+  const DISK = { "domain.devices.disks[rootdisk].disk.bus": "virtio", "domain.memory.guest": "4Gi", "volumes[rootdisk].persistentVolumeClaim.claimName": "rootdisk" };
+  const under = (prefix, set) => Object.fromEntries(Object.entries(set).map(([k, v]) => [prefix + k, v]));
+  const vmRest = rest("you", { ...NS, "spec.runStrategy": "Always", ...under("spec.template.spec.", DISK) });
+  const vmiRest = rest("virt-controller", { ...NS, "metadata.ownerReferences[VirtualMachine].name": "my-vm", "metadata.ownerReferences[VirtualMachine].controller": "true", ...under("spec.", DISK), "status.nodeName": "<node>" });
+  const snapshotRest = [rest("you", NS), rest("virt-controller", { "metadata.finalizers[snapshot.kubevirt.io/vmsnapshot-protection]": "", "status.sourceUID": "<vm uid>" })];
+  const contentRest = rest("virt-controller", { ...NS, "metadata.finalizers[snapshot.kubevirt.io/vmsnapshotcontent-protection]": "", "spec.virtualMachineSnapshotName": "my-vm-snap" });
+  const vsRest = rest("virt-controller", { ...NS, "metadata.labels[snapshot.kubevirt.io/source-vm-name]": "my-vm", "metadata.labels[snapshot.kubevirt.io/source-vm-namespace]": "default", "metadata.ownerReferences[VirtualMachineSnapshotContent].name": CONTENT, "metadata.ownerReferences[VirtualMachineSnapshotContent].controller": "true" });
+  const scratchSpec = { "spec.accessModes[ReadWriteOnce]": "", "spec.volumeMode": "Filesystem", "spec.resources.requests.storage": "10Gi" };
+  const scratchRest = (set) => rest("virt-controller", { ...NS, "spec.storageClassName": "<the class of rootdisk>", ...set });
+
   const YAML = {
     direct: [
       { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
-        2: [{ by: "you", set: snapshotSpec({}) }, { by: "virt-controller", set: snapshotStarted }],
+        2: [...snapshotRest, { by: "you", set: snapshotSpec({}) }, { by: "virt-controller", set: snapshotStarted }],
         4: { by: "virt-controller", set: snapshotDone }
       } },
       { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-creationtime", steps: {
-        2: { by: "virt-controller", set: contentSpec },
+        2: [contentRest, { by: "virt-controller", set: contentSpec }],
         3: { by: "virt-controller", set: { [`status.volumeSnapshotStatus[${VS}].readyToUse`]: "false" } },
         4: { by: "virt-controller", set: contentDone }
       } },
       { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-inprogress", steps: {
-        1: { by: "virt-controller", set: { "status.printableStatus": "Running" } },
+        1: [vmRest, { by: "virt-controller", set: { "status.printableStatus": "Running" } }],
         2: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
         4: { by: "virt-controller", del: ["status.snapshotInProgress"] }
       } },
       { kind: "VirtualMachineInstance", name: "my-vm", api: "kubevirt.io/v1", card: "api-vmi-cond", steps: {
-        1: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"" } },
+        1: [vmiRest, { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"" } }],
         3: { by: "virt-handler", set: { "status.fsFreezeStatus": "frozen" } },
         4: { by: "virt-handler", del: ["status.fsFreezeStatus"] }
       } },
       { kind: "VolumeSnapshot", name: VS, api: "snapshot.storage.k8s.io/v1", steps: {
-        3: [{ by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
+        3: [vsRest, { by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
         4: { by: "CSI", set: { "status.readyToUse": "true", "status.creationTime": "<time>" } }
       } }
     ],
     external: [
       { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
-        2: [{ by: "you", set: snapshotSpec({ "spec.snapshotMode": "External", "spec.overlayScratchSize": "10Gi" }) }, { by: "virt-controller", set: snapshotStarted }],
+        2: [...snapshotRest, { by: "you", set: snapshotSpec({ "spec.snapshotMode": "External", "spec.overlayScratchSize": "10Gi" }) }, { by: "virt-controller", set: snapshotStarted }],
         7: { by: "virt-controller", set: snapshotDone }
       } },
       { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-mode", steps: {
-        2: { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External" } },
+        2: [contentRest, { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External" } }],
         6: { by: "virt-controller", set: { [`status.volumeSnapshotStatus[${VS}].readyToUse`]: "false" } },
         7: { by: "virt-controller", set: contentDone }
       } },
       { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-inprogress", steps: {
-        1: { by: "virt-controller", set: { "status.printableStatus": "Running" } },
+        1: [vmRest, { by: "virt-controller", set: { "status.printableStatus": "Running" } }],
         2: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
         10: { by: "virt-controller", del: ["status.snapshotInProgress"] }
       } },
       { kind: "VirtualMachineInstance", name: "my-vm", api: "kubevirt.io/v1", card: "api-vmi-cond", steps: {
-        1: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"", "status.conditions[LiveMigratable].status": "\"True\"" } },
+        1: [vmiRest, { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[AgentConnected].status": "\"True\"", "status.conditions[LiveMigratable].status": "\"True\"" } }],
         2: [{ by: "virt-controller", set: scratchVolume }, { by: "virt-handler", set: scratchStatus("hp-volume-xxxxx") }],
         3: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF } },
             { by: "virt-handler", set: { "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayPreparing", "status.conditions[LiveMigratable].status": "\"False\"", "status.conditions[LiveMigratable].reason": "SnapshotOverlaysNotLiveMigratable" } }],
@@ -1495,43 +1508,43 @@ spec:
         10: [{ by: "virt-controller", del: unplugged }, { by: "virt-handler", del: unplugStatus }]
       } },
       { kind: "PersistentVolumeClaim", name: SCRATCH, api: "v1 · the scratch volume", card: "api-pvc-finalizer", gone: 10, steps: {
-        2: [{ by: "virt-controller", set: { ...scratchMeta("<vmi uid>"), "spec.accessModes[ReadWriteOnce]": "", "spec.volumeMode": "Filesystem", "spec.resources.requests.storage": "10Gi" } }, { by: "CSI", set: { "status.phase": "Bound" } }]
+        2: [scratchRest({}), { by: "virt-controller", set: { ...scratchMeta("<vmi uid>"), ...scratchSpec } }, { by: "CSI", set: { "status.phase": "Bound" } }]
       } },
       { kind: "VolumeSnapshot", name: VS, api: "snapshot.storage.k8s.io/v1", steps: {
-        6: [{ by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
+        6: [vsRest, { by: "virt-controller", set: { "spec.source.persistentVolumeClaimName": "rootdisk", "spec.volumeSnapshotClassName": "<the class of rootdisk's driver>" } }, { by: "CSI", set: { "status.readyToUse": "false" } }],
         7: { by: "CSI", set: { "status.readyToUse": "true", "status.creationTime": "<time>" } }
       } }
     ],
     recovery: [
       { kind: "VirtualMachine", name: "my-vm", api: "kubevirt.io/v1", card: "api-vm-recovery", steps: {
-        1: { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } },
+        1: [vmRest, { by: "virt-controller", set: { "status.snapshotInProgress": "my-vm-snap" } }],
         2: { by: "virt-controller", set: { "status.conditions[ManualRecoveryRequired].status": "\"True\"", "status.conditions[ManualRecoveryRequired].reason": "UncommittedOverlays", "status.conditions[ManualRecoveryRequired].message": "Uncommitted writes remain on scratch PVC `snap-scratch-<uid>`. Starting the VM recovers them. If the recovery is refused, …" }, del: ["status.snapshotInProgress"] },
         3: { by: "virt-controller", set: { "status.printableStatus": "Starting" }, read: { "status.conditions[ManualRecoveryRequired].reason": "only UncommittedOverlays lets a start go on" } },
         7: { by: "virt-controller", set: { "status.printableStatus": "Running" }, del: ["status.conditions[ManualRecoveryRequired].status", "status.conditions[ManualRecoveryRequired].reason", "status.conditions[ManualRecoveryRequired].message"] }
       } },
       { kind: "VirtualMachineInstance", name: "my-vm", note: "the crashed VMI · uid <vmi uid>", api: "kubevirt.io/v1", card: "api-vmi-cond", gone: 3, steps: {
-        1: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume } },
+        1: [vmiRest, { by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume } },
             { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitting", "status.snapshotOverlayPVCUID": "<scratch uid>" } }],
         2: { by: "virt-controller", set: { "status.phase": "Failed" }, read: { "status.conditions[OverlaySnapshotActive].reason": "not OverlayCommitted: the overlay still holds writes", "status.snapshotOverlayPVCUID": "the scratch PVC that report is about" } }
       } },
       { kind: "VirtualMachineInstance", name: "my-vm", note: "the replacement · uid <new vmi uid>", api: "kubevirt.io/v1", card: "api-vmi-pending", steps: {
-        3: [{ by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/pending-overlay-recovery]": SCRATCH, "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume, "status.phase": "Scheduled" } },
+        3: [vmiRest, { by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/pending-overlay-recovery]": SCRATCH, "metadata.annotations[snapshot.kubevirt.io/overlay-reference]": REF, ...scratchVolume, "status.phase": "Scheduled" } },
             { by: "virt-handler", set: scratchStatus("hp-volume-yyyyy") }],
         4: { by: "virt-handler", set: { "status.phase": "Running", "status.conditions[OverlaySnapshotActive].status": "\"True\"", "status.conditions[OverlaySnapshotActive].reason": "OverlayCommitting", "status.conditions[OverlaySnapshotActive].message": "recovering the overlays of an interrupted external snapshot", "status.snapshotOverlayPVCUID": "<scratch uid>", "status.conditions[LiveMigratable].status": "\"False\"", "status.conditions[LiveMigratable].reason": "SnapshotOverlaysNotLiveMigratable" } },
         6: { by: "virt-handler", set: { ...paused, ...committed }, del: ["status.conditions[OverlaySnapshotActive].message", "status.conditions[LiveMigratable].reason"] },
         7: [{ by: "virt-controller", del: [...unplugged, "metadata.annotations[snapshot.kubevirt.io/pending-overlay-recovery]"] }, { by: "virt-handler", del: unplugStatus }]
       } },
       { kind: "PersistentVolumeClaim", name: SCRATCH, api: "v1 · the scratch volume", card: "api-pvc-protected", gone: 7, steps: {
-        1: [{ by: "virt-controller", set: scratchMeta("<vmi uid>") }, { by: "CSI", set: { "status.phase": "Bound" } }],
+        1: [scratchRest(scratchSpec), { by: "virt-controller", set: scratchMeta("<vmi uid>") }, { by: "CSI", set: { "status.phase": "Bound" } }],
         2: { by: "virt-controller", read: { "metadata.finalizers[snapshot.kubevirt.io/overlay-protection]": "keeps the PVC, and the overlay on it" } },
         3: { by: "virt-controller", set: { "metadata.annotations[snapshot.kubevirt.io/owner-vmi-uid]": "<new vmi uid>" }, read: { "metadata.ownerReferences[VirtualMachineSnapshotContent].name": "the content must exist, with this UID, naming this VM", "metadata.finalizers[snapshot.kubevirt.io/overlay-protection]": "protected: a candidate for recovery" } }
       } },
       { kind: "VirtualMachineSnapshotContent", name: CONTENT, api: "snapshot.kubevirt.io/v1beta1", card: "api-content-owner", steps: {
-        1: { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External", "status.creationTime": "<time>", "status.readyToUse": "true" } },
+        1: [contentRest, { by: "virt-controller", set: { ...contentSpec, "status.snapshotMode": "External", "status.creationTime": "<time>", "status.readyToUse": "true" } }],
         3: { by: "virt-controller", read: { "spec.source.virtualMachine.metadata.uid": "must be this VM's UID", "spec.source.virtualMachine.spec.template.spec.volumes[rootdisk].persistentVolumeClaim.claimName": "the VM's rootdisk must still use this claim", "spec.volumeBackups[rootdisk].persistentVolumeClaim.metadata.uid": "PVC rootdisk must still have this UID" } }
       } },
       { kind: "VirtualMachineSnapshot", name: "my-vm-snap", api: "snapshot.kubevirt.io/v1beta1", card: "api-vms-mode", steps: {
-        1: { by: "virt-controller", set: { "spec.snapshotMode": "External", ...snapshotDone } }
+        1: [...snapshotRest, rest("you", snapshotSpec({})), rest("virt-controller", { "status.virtualMachineSnapshotContentName": CONTENT }), { by: "virt-controller", set: { "spec.snapshotMode": "External", ...snapshotDone } }]
       } }
     ]
   };
@@ -1756,8 +1769,8 @@ spec:
 
   // The objects at each step: a bottom drawer (Y) with YAML excerpts of the objects, the changes
   // of the current step marked. Lists print one item per bracket key; LISTS names the item's key field.
-  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", finalizers: null, indications: null, accessModes: null };
-  const RANK = ["metadata", "spec", "status"];
+  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", disks: "name", finalizers: null, indications: null, accessModes: null };
+  const RANK = ["apiVersion", "kind", "metadata", "spec", "status"];
   const MARK = { add: "+", chg: "~", del: "−", rd: "·", gap: "", "": "" };
   const drawer = $("drawer"), drawerBody = $("dr-body"), yamlBtn = $("yaml-btn");
   let yamlOpen = false, yamlMode = "changes";
@@ -1777,11 +1790,19 @@ spec:
 
   const deltas = (obj, n) => [].concat(obj.steps[n] || []);
 
+  // Everything shows whole objects: the header from the entry, the rest from deltas marked `rest`.
+  function identity(obj) {
+    const api = (obj.api || "").split(" · ")[0];
+    return /^([a-z0-9.-]+\/)?v\d/.test(api) ? { apiVersion: api, kind: obj.kind, "metadata.name": obj.name } : {};
+  }
+
   function stateAt(obj, upto) {
     const state = new Map();
+    const first = Math.min(...Object.keys(obj.steps));
+    if (upto >= first) Object.entries(identity(obj)).forEach(([p, v]) => state.set(p, { value: v, by: deltas(obj, first)[0].by, rest: true }));
     for (let n = 1; n <= upto; n++) deltas(obj, n).forEach((d) => {
       (d.del || []).forEach((p) => state.delete(p));
-      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by }));
+      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by, rest: d.rest }));
     });
     return state;
   }
@@ -1805,8 +1826,10 @@ spec:
       node.path = path;
     });
 
+    const full = yamlMode === "all";
     const leafClass = (path) => {
       const was = before.get(path), is = now.get(path);
+      if (!full && (is || was).rest) return "";
       if (!was) return "add";
       if (!is) return "del";
       if (was.value !== is.value) return "chg";
@@ -1829,7 +1852,6 @@ spec:
 
     const lines = [];
     const counts = { add: 0, chg: 0, del: 0, rd: 0 };
-    const full = yamlMode === "all";
     const walk = (node, depth, keyField, parentTag) => {
       const kids = [...node.children.values()];
       if (node === root) kids.sort((a, b) => (RANK.indexOf(a.seg) + 1 || 9) - (RANK.indexOf(b.seg) + 1 || 9));
@@ -1865,7 +1887,25 @@ spec:
     };
     walk(root, 0, undefined, "");
     const changed = counts.add + counts.chg + counts.del > 0;
-    return { lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+    return { lines: full && textAt(obj, n) !== undefined ? textLines(obj, n) : lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+  }
+
+  // `full` is an object's text in its own format, whole or per step. Everything prints it with a line diff.
+  const textAt = (obj, n) => typeof obj.full === "object" ? (Object.entries(obj.full).filter(([k]) => k <= n).pop() || [])[1] : obj.full;
+
+  function textLines(obj, n) {
+    const split = (m) => obj.gone === m || textAt(obj, m) === undefined ? [] : textAt(obj, m).split("\n");
+    const now = split(n), was = n === 1 ? now : split(n - 1);
+    const same = Array.from({ length: was.length + 1 }, () => new Array(now.length + 1).fill(0));
+    for (let i = was.length - 1; i >= 0; i--) for (let j = now.length - 1; j >= 0; j--)
+      same[i][j] = was[i] === now[j] ? same[i + 1][j + 1] + 1 : Math.max(same[i + 1][j], same[i][j + 1]);
+    const lines = [];
+    for (let i = 0, j = 0; i < was.length || j < now.length;) {
+      if (i < was.length && j < now.length && was[i] === now[j]) { lines.push({ head: "", value: now[j++], cls: "", tag: "" }); i++; }
+      else if (j < now.length && (i === was.length || same[i][j + 1] >= same[i + 1][j])) lines.push({ head: "", value: now[j++], cls: "add", tag: "" });
+      else lines.push({ head: "", value: was[i++], cls: "del", tag: "" });
+    }
+    return lines;
   }
 
   const yamlLine = (text) => escapeHTML(text).replace(/^(\s*(?:- )?)([^:]+:)(?=\s|$)/, '$1<span class="k">$2</span>');

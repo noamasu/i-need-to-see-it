@@ -244,14 +244,16 @@ get a halo (`paint-order: stroke` in the background color), as `io-label` and
   a heading and buttons to the other groups, labelled with their `short`. The view is
   built once at load; `showOnSurface(anchor)` opens it, scrolls to the entry and
   flashes it.
-- `YAML = { <flow>: [ { kind, name, note, api, card, gone, goneBy, steps: { <n>: delta | [delta, …] } } ] }`,
-  a delta being `{ by, set: { path: value }, del: [path], read: { path: why } }`,
+- `YAML = { <flow>: [ { kind, name, note, api, card, gone, goneBy, full, steps: { <n>: delta | [delta, …] } } ] }`,
+  a delta being `{ by, set: { path: value }, del: [path], read: { path: why }, rest }`,
   steps 1-based, `gone` the step the object is deleted at, `card` the surface entry
   its header button jumps to. Paths are dotted, with `[key]` for a map key that
   contains dots or for one item of a list named in `LISTS`. The drawer derives each
   step's state from the deltas, so a field is written once and the diff against the
   previous step is computed: added, changed (old value struck through before the new),
-  removed, read. Step 1 is the baseline and shows no marks. `renderDrawer()` runs
-  with every `render()`; the drawer is hidden on the static views.
+  removed, read. Step 1 is the baseline and shows no marks. Everything prints each
+  object whole: the header from the entry, then the `rest: true` deltas that Changes
+  hides, or the entry's `full` text. `renderDrawer()` runs with every
+  `render()`; the drawer is hidden on the static views.
 - `STATIC` lists the views that are not flows (`compare`, `surface`); `VIEWS` is the
   tab order.

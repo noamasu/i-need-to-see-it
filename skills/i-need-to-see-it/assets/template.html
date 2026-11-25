@@ -903,10 +903,10 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
   const API = null;
   // SURFACE: the "API surface" view, one card per object: { label, title, lede, foot, cards: [{ title, kind, wide, entries }], back: [["flow/step", "label"]] }.
   const SURFACE = null;
-  // YAML: the objects at each step for the YAML drawer (key Y): per flow, one entry per object, its fields written once, at the step they change: { kind, name, note, api, card, gone, steps: { <n>: { by, set, del, read } } }. detailed.md section 4.
+  // YAML: the objects at each step for the YAML drawer (key Y): per flow, one entry per object, its fields written once, at the step they change: { kind, name, note, api, card, gone, full, steps: { <n>: { by, set, del, read, rest } } }. A delta marked rest holds the rest of the manifest, for Everything. detailed.md section 4.
   const YAML = null;
   // LISTS: the YAML keys that print as lists, with the field that names an item; null for a list of scalars. Add the subject's own.
-  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", containers: "name", finalizers: null, indications: null, accessModes: null };
+  const LISTS = { conditions: "type", utilityVolumes: "name", volumeStatus: "name", volumeBackups: "volumeName", volumeSnapshotStatus: "volumeSnapshotName", ownerReferences: "kind", volumes: "name", disks: "name", containers: "name", finalizers: null, indications: null, accessModes: null };
 
   const GUEST = { running: ["Running", "ok"], freezing: ["Freezing", "ice"], frozen: ["Filesystems frozen", "ice"], paused: ["Paused", "held"], off: ["Stopped", "held"] };
   const FACTS = [
@@ -1272,7 +1272,7 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
   // The YAML drawer (detailed mode): the objects at the current step, each as a YAML excerpt with the
   // step's changes marked. The state at a step is derived from the YAML deltas up to it, and diffed
   // against the previous step: added, changed (old value struck through), removed, read.
-  const RANK = ["metadata", "spec", "status"];
+  const RANK = ["apiVersion", "kind", "metadata", "spec", "status"];
   const MARK = { add: "+", chg: "~", del: "−", rd: "·" };
   const drawer = $("drawer"), drawerBody = $("dr-body"), yamlBtn = $("yaml-btn"), grip = $("dr-grip");
   let yamlOpen = false, yamlMode = "changes";
@@ -1294,11 +1294,19 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
 
   const deltas = (obj, n) => [].concat(obj.steps[n] || []);
 
+  // Everything shows whole objects: the header from the entry, the rest from deltas marked `rest`.
+  function identity(obj) {
+    const api = (obj.api || "").split(" · ")[0];
+    return /^([a-z0-9.-]+\/)?v\d/.test(api) ? { apiVersion: api, kind: obj.kind, "metadata.name": obj.name } : {};
+  }
+
   function stateAt(obj, upto) {
     const state = new Map();
+    const first = Math.min(...Object.keys(obj.steps));
+    if (upto >= first) Object.entries(identity(obj)).forEach(([p, v]) => state.set(p, { value: v, by: deltas(obj, first)[0].by, rest: true }));
     for (let n = 1; n <= upto; n++) deltas(obj, n).forEach((d) => {
       (d.del || []).forEach((p) => state.delete(p));
-      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by }));
+      Object.entries(d.set || {}).forEach(([p, v]) => state.set(p, { value: v, by: d.by, rest: d.rest }));
     });
     return state;
   }
@@ -1321,8 +1329,10 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
       node.path = path;
     });
 
+    const full = yamlMode === "all";
     const leafClass = (path) => {
       const was = before.get(path), is = now.get(path);
+      if (!full && (is || was).rest) return "";
       if (!was) return "add";
       if (!is) return "del";
       if (was.value !== is.value) return "chg";
@@ -1344,7 +1354,6 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
     };
 
     const lines = [], counts = { add: 0, chg: 0, del: 0, rd: 0 };
-    const full = yamlMode === "all";
     const walk = (node, depth, keyField, parentTag) => {
       const kids = [...node.children.values()];
       if (node === root) kids.sort((a, b) => (RANK.indexOf(a.seg) + 1 || 9) - (RANK.indexOf(b.seg) + 1 || 9));
@@ -1380,7 +1389,25 @@ body.drawer-open .page { padding-bottom: var(--drawer-h, var(--drawer-default));
     };
     walk(root, 0, undefined, "");
     const changed = counts.add + counts.chg + counts.del > 0;
-    return { lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+    return { lines: full && textAt(obj, n) !== undefined ? textLines(obj, n) : lines, hot: changed || counts.rd > 0, changed, created: n > 1 && !before.size, deleted: obj.gone === n };
+  }
+
+  // `full` is an object's text in its own format, whole or per step. Everything prints it with a line diff.
+  const textAt = (obj, n) => typeof obj.full === "object" ? (Object.entries(obj.full).filter(([k]) => k <= n).pop() || [])[1] : obj.full;
+
+  function textLines(obj, n) {
+    const split = (m) => obj.gone === m || textAt(obj, m) === undefined ? [] : textAt(obj, m).split("\n");
+    const now = split(n), was = n === 1 ? now : split(n - 1);
+    const same = Array.from({ length: was.length + 1 }, () => new Array(now.length + 1).fill(0));
+    for (let i = was.length - 1; i >= 0; i--) for (let j = now.length - 1; j >= 0; j--)
+      same[i][j] = was[i] === now[j] ? same[i + 1][j + 1] + 1 : Math.max(same[i + 1][j], same[i][j + 1]);
+    const lines = [];
+    for (let i = 0, j = 0; i < was.length || j < now.length;) {
+      if (i < was.length && j < now.length && was[i] === now[j]) { lines.push({ head: "", value: now[j++], cls: "", tag: "" }); i++; }
+      else if (j < now.length && (i === was.length || same[i][j + 1] >= same[i + 1][j])) lines.push({ head: "", value: now[j++], cls: "add", tag: "" });
+      else lines.push({ head: "", value: was[i++], cls: "del", tag: "" });
+    }
+    return lines;
   }
 
   const yamlLine = (text) => escapeHTML(text).replace(/^(\s*(?:- )?)([^:]+:)(?=\s|$)/, '$1<span class="k">$2</span>');

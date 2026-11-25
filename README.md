@@ -26,7 +26,8 @@ that shows three things at once:
 
 In `--detailed` mode the page also carries the full API surface, object by object,
 a folded "In the API" line under every step saying exactly what changed, and a YAML
-drawer (key Y) that shows each object's fields as they change from step to step.
+drawer (key Y) that shows each object's fields as they change from step to step,
+or each object whole, in its own data serialization or interchange format.
 
 Every arrow, name and number on the page comes from the code at that ref. The agent
 never invents a line number, a name or a motive, and it treats GitHub, Jira and every
